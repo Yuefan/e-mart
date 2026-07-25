@@ -1,0 +1,97 @@
+# Self-hosted deployment (spec §2.2).
+#
+#   docker compose --env-file .env.production up -d --build
+#
+# Three services, one image build:
+#   migrate — runs once, applies pending migrations, exits
+#   web     — the Next.js standalone server
+#   worker  — the polling worker: scheduled syncs, audits, content jobs
+#
+# caddy is optional; drop it if you already terminate TLS elsewhere.
+
+name: ai-marketing-dashboard
+
+x-app-env: &app-env
+  # Absolute on purpose. The standalone bundle runs with a different working
+  # directory than the project root, so a relative file: path resolves
+  # somewhere that does not exist.
+  DATABASE_URL: "file:/data/app.db"
+  APP_URL: ${APP_URL:?set APP_URL to the public https origin}
+  ENCRYPTION_KEY: ${ENCRYPTION_KEY:?missing}
+  SESSION_SECRET: ${SESSION_SECRET:?missing}
+  GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+  GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+  AI_BASE_URL: ${AI_BASE_URL:-}
+  AI_API_KEY: ${AI_API_KEY:-}
+  AI_MODEL_ANALYSIS: ${AI_MODEL_ANALYSIS:-claude-opus-5}
+  AI_MODEL_FAST: ${AI_MODEL_FAST:-claude-haiku-4-5}
+  AI_EFFORT: ${AI_EFFORT:-medium}
+  AI_MAX_MONTHLY_USD: ${AI_MAX_MONTHLY_USD:-50}
+  # Only meaningful if the host needs a proxy to reach Google / the AI gateway.
+  HTTPS_PROXY: ${HTTPS_PROXY:-}
+  HTTP_PROXY: ${HTTP_PROXY:-}
+  NO_PROXY: ${NO_PROXY:-localhost,127.0.0.1}
+
+services:
+  migrate:
+    build:
+      context: .
+      target: toolbox
+    command: npx prisma migrate deploy
+    environment: *app-env
+    volumes:
+      - data:/data
+    restart: "no"
+
+  web:
+    build:
+      context: .
+      target: runner
+    environment: *app-env
+    volumes:
+      - data:/data
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    # Published on loopback only; caddy is the public entry point. Drop the
+    # 127.0.0.1 prefix if you are fronting this with something else.
+    ports:
+      - "127.0.0.1:3000:3000"
+
+  worker:
+    build:
+      context: .
+      target: toolbox
+    command: npm run worker
+    environment: *app-env
+    volumes:
+      - data:/data
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    # One worker only. Two would contend for the same SQLite file, and the
+    # queue's claim lock is designed for correctness, not throughput.
+    deploy:
+      replicas: 1
+
+  caddy:
+    image: caddy:2-alpine
+    depends_on:
+      - web
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?set APP_DOMAIN to your hostname}
+    restart: unless-stopped
+
+volumes:
+  data:
+  caddy-data:
+  caddy-config:

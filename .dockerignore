@@ -1,0 +1,21 @@
+node_modules
+.next
+.git
+.gitignore
+
+# Secrets never enter the image — compose passes them at runtime via env_file.
+.env
+.env.*
+!.env.example
+
+# Local database. The deployed one lives on a volume.
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Build/editor noise
+tsconfig.tsbuildinfo
+.vscode
+.idea
+npm-debug.log*

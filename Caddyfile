@@ -1,0 +1,24 @@
+# TLS is automatic: Caddy provisions and renews a certificate for APP_DOMAIN,
+# which is why ports 80 and 443 both need to reach this container.
+
+{$APP_DOMAIN} {
+	encode zstd gzip
+
+	# The dashboard holds third-party credentials, so it should never be framed
+	# and its URLs should not leak to other origins.
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "same-origin"
+		-Server
+	}
+
+	reverse_proxy web:3000 {
+		# A manual sync or an audit kick-off can sit for a while before the
+		# first byte; the default 30s read timeout would cut those off.
+		transport http {
+			read_timeout 300s
+		}
+	}
+}

@@ -109,6 +109,16 @@ npm run db:seed:demo       # 造 180 天合成数据，站点名 "Demo (syntheti
 | `npm run db:seed:demo` | 合成演示数据 |
 | `npm run db:reset` | 清库重建 |
 
+## 部署
+
+见 [`docs/deployment.md`](./docs/deployment.md)。VPS + Docker Compose：
+
+```bash
+docker compose --env-file .env.production up -d --build
+```
+
+**Cloudflare Workers 跑不了这个应用**——原生模块、常驻 worker 进程、6.5 分钟的抓取任务，三个都撞在 Workers 的模型上。文档里写了真要迁需要改什么。
+
 ## 与 spec 的差异
 
 写在代码里的偏离，都是有理由的，不是漏做：

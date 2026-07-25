@@ -18,5 +18,9 @@ export function resolveDatabaseUrl(url = process.env.DATABASE_URL): string {
   if (raw === ":memory:" || path.isAbsolute(raw)) return url;
 
   // Forward slashes even on Windows — the driver treats backslashes literally.
-  return `file:${path.resolve(process.cwd(), raw).replace(/\\/g, "/")}`;
+  //
+  // turbopackIgnore: the path comes from an env var, so the bundler cannot
+  // statically scope it and falls back to tracing the whole project into
+  // .next/standalone. This resolution only ever runs at runtime.
+  return `file:${path.resolve(/* turbopackIgnore: true */ process.cwd(), raw).replace(/\\/g, "/")}`;
 }
