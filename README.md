@@ -27,6 +27,19 @@
 
 > Cloudflare / GitHub / Shopify 三路证据源还空着（需要对应凭证）。诊断目前跑在 GSC + 现场抓取上。
 
+**P2 — 内容生产**
+
+| 能力 | 位置 |
+|---|---|
+| brandVoice 配置（tone/audience/关键词/禁用词/字数区间） | `/sites/[siteId]/settings` |
+| 选题：从你自己「有曝光但排名差」的查询里挑，按预期价值排序 | `src/lib/ai/prompts/content.v1.ts` |
+| 大纲 → 正文 → 自检全链路，分步进度 | `src/lib/jobs/content.ts` |
+| 机械检查：关键词密度、meta 长度、标题层级、内链数、禁用词、近重复标题 | `src/lib/content/checks.ts` |
+| 草稿列表 + Markdown 编辑器（实时预览 + SEO 检查条） | `/sites/[siteId]/content` |
+| 月度 AI 花费看板与预算上限 | `/sites/[siteId]/settings` |
+
+> 配图那步需要图像生成 API，目前正文里留 `{{IMAGE_1}}` 占位符不填充。发布目标（Shopify / GitHub）等对应连接接上才开放。
+
 ## 快速开始
 
 ```bash
@@ -89,6 +102,7 @@ npm run db:seed:demo       # 造 180 天合成数据，站点名 "Demo (syntheti
 | `npm run worker` | 常驻 worker：定时任务 + 队列消费 |
 | `npm run ai:check` | 验证 AI 网关连通、模型、单次成本 |
 | `npm run typecheck` / `lint` | TS + ESLint |
+| `npm test` | Node 自带 test runner，跑 `src/**/*.test.ts` |
 | `npm run db:migrate` | 建/改表 |
 | `npm run db:studio` | Prisma Studio 看数据 |
 | `npm run db:seed:demo` | 合成演示数据 |
@@ -108,6 +122,8 @@ npm run db:seed:demo       # 造 180 天合成数据，站点名 "Demo (syntheti
 7. **聚合在 JS 里做，不是 SQL**。每个维度每个同步窗口上限 25k 行，读取量很小；这样查询层不依赖 SQLite 的日期存储格式，迁 Postgres 时不用重写。
 8. **AI 走官方 SDK，不走 OpenAI 兼容 shim**。spec §6.1 写的是 `/v1` 中转，这里用 `@anthropic-ai/sdk` + `baseURL` 指向中转的 Anthropic 端点（New API / LiteLLM 都提供）。这样结构化输出、adaptive thinking、refusal 处理都还在；用 OpenAI shim 会全丢。**代价是你的中转必须有 `/v1/messages`，不能只有 `/v1/chat/completions`** —— 只有后者的话告诉我，我改用 tool_use 兜底。
 9. **模型默认 `claude-opus-5`**，不是 spec 写的 `claude-sonnet-4-6`（那个 ID 还有效，只是不是当前最强）。全部走环境变量，改一行就能降级；`docs/ai-gateway-setup.md` 里有成本对照。
+10. **重复检测用 token 重合度，不是 embedding**。spec §5.3 写的是 embedding 余弦 > 0.85，那需要额外的 embedding API。现在用标题 token 的 Jaccard 重合度（带朴素复数归并）> 0.6 判定近重复。够用且零额外依赖，接了 embedding 再换。
+11. **配图链路空着**。正文里生成 `{{IMAGE_1}}` 占位符但不填充——图像生成 API 未配置。占位符会在 SEO 检查条里显示为待填槽位。
 
 ## 下一步（按 spec 的交付计划）
 

@@ -61,6 +61,37 @@ export function buttonClass(
   );
 }
 
+export function inputClass(className?: string) {
+  return cn(
+    "w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm",
+    "placeholder:text-muted/70",
+    "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent",
+    className,
+  );
+}
+
+export function Field({
+  label,
+  hint,
+  htmlFor,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  htmlFor?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div>
+      <label htmlFor={htmlFor} className="block text-sm font-medium">
+        {label}
+      </label>
+      {hint ? <p className="mt-0.5 mb-1.5 text-xs text-muted">{hint}</p> : <div className="h-1.5" />}
+      {children}
+    </div>
+  );
+}
+
 export function Badge({
   children,
   tone = "neutral",

@@ -9,13 +9,12 @@ type Site = { id: string; name: string; domain: string };
 const MODULES = [
   { label: "Search performance", segment: "overview" },
   { label: "SEO audit", segment: "seo" },
+  { label: "Content", segment: "content" },
+  { label: "Settings", segment: "settings" },
 ];
 
 /** Modules from the spec that aren't built yet. */
-const PLANNED_MODULES = [
-  { label: "Content", segment: "content" },
-  { label: "Deploy", segment: "deploy" },
-];
+const PLANNED_MODULES = [{ label: "Deploy", segment: "deploy" }];
 
 export function SidebarNav({ sites }: { sites: Site[] }) {
   const pathname = usePathname();

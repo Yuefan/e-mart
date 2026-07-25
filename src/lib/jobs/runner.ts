@@ -1,4 +1,6 @@
 import type { JobRun } from "@prisma/client";
+import type { TopicIdea } from "@/lib/ai/schemas";
+import { runContentGenerate, runTopicIdeation } from "./content";
 import { runGscSync } from "./gsc-sync";
 import { runHealthCheck, runTokenRefresh } from "./maintenance";
 import { parsePayload } from "./queue";
@@ -17,6 +19,19 @@ export async function runJob(job: JobRun): Promise<unknown> {
       if (!job.siteId) throw new Error("seo_audit requires a siteId");
       const payload = parsePayload<{ triggeredBy?: "cron" | "manual" }>(job);
       return runSeoAudit(job.siteId, { triggeredBy: payload?.triggeredBy ?? "cron" });
+    }
+
+    case "content_ideate": {
+      if (!job.siteId) throw new Error("content_ideate requires a siteId");
+      const payload = parsePayload<{ count?: number }>(job);
+      return runTopicIdeation(job.siteId, { count: payload?.count, jobId: job.id });
+    }
+
+    case "content_generate": {
+      if (!job.siteId) throw new Error("content_generate requires a siteId");
+      const payload = parsePayload<{ topic?: TopicIdea }>(job);
+      if (!payload?.topic) throw new Error("content_generate requires a topic in its payload");
+      return runContentGenerate(job.siteId, { topic: payload.topic, jobId: job.id });
     }
 
     case "token_refresh":

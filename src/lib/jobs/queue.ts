@@ -13,7 +13,13 @@ import { prisma } from "@/lib/prisma";
  * `enqueue` and the worker only ever sees `claimNext`.
  */
 
-export type JobType = "gsc_sync" | "seo_audit" | "token_refresh" | "health_check";
+export type JobType =
+  | "gsc_sync"
+  | "seo_audit"
+  | "token_refresh"
+  | "health_check"
+  | "content_ideate"
+  | "content_generate";
 
 export const MAX_ATTEMPTS = 3;
 /** A job still "running" after this long is assumed to be from a dead worker. */

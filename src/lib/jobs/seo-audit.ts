@@ -6,6 +6,7 @@ import {
   buildUserPrompt,
 } from "@/lib/ai/prompts/seo-audit.v1";
 import { type SeoAuditOutput, seoAuditSchema } from "@/lib/ai/schemas";
+import { formatBrandVoiceForPrompt, parseBrandVoice } from "@/lib/brand-voice";
 import { getBreakdown, getInsights, getTotals, previousPeriod } from "@/lib/gsc-queries";
 import { prisma } from "@/lib/prisma";
 import { crawlPages, fetchSiteFiles } from "@/lib/seo/crawl";
@@ -107,7 +108,7 @@ export async function runSeoAudit(
       siteFiles,
       pages,
       ruleFindings,
-      brandVoice: site.brandVoice,
+      brandVoice: formatBrandVoiceForPrompt(parseBrandVoice(site.brandVoice)),
     };
 
     let ai: SeoAuditOutput | null = null;

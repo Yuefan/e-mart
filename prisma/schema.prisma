@@ -40,6 +40,7 @@ model Site {
   gscDaily GscDaily[]
   jobRuns  JobRun[]
   audits   SeoAudit[]
+  articles Article[]
 
   @@unique([userId, domain])
 }
@@ -142,6 +143,62 @@ model SeoAudit {
   finishedAt  DateTime?
 
   @@index([siteId, createdAt])
+}
+
+// ---- Content (spec §5.3) ----
+model Article {
+  id            String  @id @default(cuid())
+  siteId        String
+  site          Site    @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  title         String
+  slug          String
+  excerpt       String?
+  bodyMd        String
+  metaTitle     String?
+  metaDesc      String?
+  targetKeyword String?
+  /// Search intent the piece is written for: informational | commercial | transactional | navigational
+  searchIntent  String?
+
+  coverImageUrl String?
+  /// JSON: [{ url, alt, prompt, placeholder }]
+  images        String?
+
+  /// draft | review | scheduled | published | failed
+  status      String    @default("draft")
+  scheduledAt DateTime?
+  publishedAt DateTime?
+
+  /// JSON: the outline the body was written from, kept so a rewrite can reuse it.
+  outline String?
+  /// JSON: self-check results — { passed, issues[], duplicateOf }
+  checks  String?
+  /// JSON: { model, promptVersion, inputTokens, outputTokens, costUsd }
+  aiMeta  String?
+
+  targets   PublishTarget[]
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@unique([siteId, slug])
+  @@index([siteId, status, createdAt])
+}
+
+model PublishTarget {
+  id        String  @id @default(cuid())
+  articleId String
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  /// SHOPIFY | GITHUB | CLOUDFLARE
+  provider  String
+  /// Shopify article gid / commit sha / deployment id
+  externalId  String?
+  externalUrl String?
+  /// pending | success | failed
+  status      String   @default("pending")
+  error       String?
+  createdAt   DateTime @default(now())
+
+  @@index([articleId])
 }
 
 model Finding {
