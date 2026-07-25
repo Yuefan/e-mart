@@ -2,8 +2,9 @@
 #
 #   docker compose --env-file .env.production up -d --build
 #
-# Three services, one image build:
-#   migrate — runs once, applies pending migrations, exits
+# Four services, one image build:
+#   db      — PostgreSQL 16, data on a named volume
+#   migrate — runs once against db, applies pending migrations, exits
 #   web     — the Next.js standalone server
 #   worker  — the polling worker: scheduled syncs, audits, content jobs
 #
@@ -12,10 +13,8 @@
 name: ai-marketing-dashboard
 
 x-app-env: &app-env
-  # Absolute on purpose. The standalone bundle runs with a different working
-  # directory than the project root, so a relative file: path resolves
-  # somewhere that does not exist.
-  DATABASE_URL: "file:/data/app.db"
+  # db is the compose service name; the port is not published to the host.
+  DATABASE_URL: "postgresql://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-marketing}?schema=public&connection_limit=10"
   APP_URL: ${APP_URL:?set APP_URL to the public https origin}
   ENCRYPTION_KEY: ${ENCRYPTION_KEY:?missing}
   SESSION_SECRET: ${SESSION_SECRET:?missing}
@@ -30,17 +29,41 @@ x-app-env: &app-env
   # Only meaningful if the host needs a proxy to reach Google / the AI gateway.
   HTTPS_PROXY: ${HTTPS_PROXY:-}
   HTTP_PROXY: ${HTTP_PROXY:-}
-  NO_PROXY: ${NO_PROXY:-localhost,127.0.0.1}
+  # db must never go through the proxy.
+  NO_PROXY: ${NO_PROXY:-localhost,127.0.0.1,db}
 
 services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-marketing}
+      # Deterministic collation; avoids index corruption warnings if the base
+      # image's libc changes between upgrades.
+      POSTGRES_INITDB_ARGS: "--locale-provider=icu --icu-locale=und --encoding=UTF8"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # Without the -d flag pg_isready reports ready during initdb, before the
+      # application database exists, and migrate then fails on connect.
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-app} -d ${POSTGRES_DB:-marketing}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    restart: unless-stopped
+    # Not published. Use `docker compose exec db psql` to get a shell.
+
   migrate:
     build:
       context: .
       target: toolbox
     command: npx prisma migrate deploy
     environment: *app-env
-    volumes:
-      - data:/data
+    depends_on:
+      db:
+        condition: service_healthy
     restart: "no"
 
   web:
@@ -48,8 +71,6 @@ services:
       context: .
       target: runner
     environment: *app-env
-    volumes:
-      - data:/data
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -65,14 +86,12 @@ services:
       target: toolbox
     command: npm run worker
     environment: *app-env
-    volumes:
-      - data:/data
     depends_on:
       migrate:
         condition: service_completed_successfully
     restart: unless-stopped
-    # One worker only. Two would contend for the same SQLite file, and the
-    # queue's claim lock is designed for correctness, not throughput.
+    # One worker only. The queue's claim lock is designed for correctness, not
+    # throughput, and a second consumer buys nothing at this volume.
     deploy:
       replicas: 1
 
@@ -92,6 +111,6 @@ services:
     restart: unless-stopped
 
 volumes:
-  data:
+  pgdata:
   caddy-data:
   caddy-config:

@@ -1,4 +1,12 @@
-import { AiBudgetError, AiConfigError, AiRefusalError, callAi, isAiConfigured } from "@/lib/ai/client";
+import {
+  AiBudgetError,
+  AiConfigError,
+  AiRefusalError,
+  type AiUsage,
+  callAi,
+  isAiConfigured,
+} from "@/lib/ai/client";
+import { jsonOrDbNull } from "@/lib/json";
 import {
   PROMPT_VERSION,
   SYSTEM,
@@ -112,7 +120,7 @@ export async function runSeoAudit(
     };
 
     let ai: SeoAuditOutput | null = null;
-    let aiMeta: string | null = null;
+    let aiMeta: AiUsage | null = null;
     let note: string | undefined;
 
     if (isAiConfigured()) {
@@ -127,7 +135,7 @@ export async function runSeoAudit(
           maxTokens: 16_000,
         });
         ai = result.data;
-        aiMeta = JSON.stringify(result.usage);
+        aiMeta = result.usage;
       } catch (error) {
         // A failed AI call must not throw away a complete rule audit.
         if (
@@ -157,7 +165,7 @@ export async function runSeoAudit(
           title: finding.title,
           detail: finding.detail,
           suggestion: finding.suggestion,
-          evidence: finding.evidence ? JSON.stringify(finding.evidence) : null,
+          evidence: jsonOrDbNull(finding.evidence),
           source: "rule",
           autoFixable: finding.autoFixable,
         })),
@@ -169,7 +177,7 @@ export async function runSeoAudit(
           title: finding.title,
           detail: finding.detail,
           suggestion: finding.suggestion,
-          evidence: null,
+          evidence: jsonOrDbNull(null),
           source: "ai",
           autoFixable: false,
         })),
@@ -182,7 +190,7 @@ export async function runSeoAudit(
           title: `Suggested ${rewrite.field === "title" ? "title" : "meta description"} rewrite`,
           detail: rewrite.rationale,
           suggestion: rewrite.value,
-          evidence: JSON.stringify({ field: rewrite.field, value: rewrite.value }),
+          evidence: { field: rewrite.field, value: rewrite.value },
           source: "ai",
           // Marked adoptable so the Shopify/GitHub writers can pick these up later.
           autoFixable: true,
@@ -198,13 +206,13 @@ export async function runSeoAudit(
         status: "done",
         score,
         summary,
-        aiMeta,
-        rawInput: JSON.stringify({
+        aiMeta: jsonOrDbNull(aiMeta),
+        rawInput: {
           window: evidence.window,
           pagesCrawled: pages.length,
           ruleFindings: ruleFindings.length,
           priorityActions: ai?.priorityActions ?? [],
-        }),
+        },
         finishedAt: new Date(),
       },
     });

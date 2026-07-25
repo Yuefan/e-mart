@@ -147,7 +147,7 @@ export async function runGscSync(
         status: "done",
         progress: 100,
         finishedAt: new Date(),
-        logs: JSON.stringify({ from, to, rowsByDimension }),
+        logs: { from, to, rowsByDimension },
       },
     });
 
@@ -158,12 +158,12 @@ export async function runGscSync(
       data: {
         status: "failed",
         finishedAt: new Date(),
-        logs: JSON.stringify({
+        logs: {
           from,
           to,
           rowsByDimension,
           error: error instanceof Error ? error.message : String(error),
-        }),
+        },
       },
     });
     throw error;

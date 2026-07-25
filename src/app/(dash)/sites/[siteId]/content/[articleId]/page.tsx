@@ -3,21 +3,16 @@ import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { EMPTY_BRAND_VOICE, parseBrandVoice } from "@/lib/brand-voice";
 import { runMechanicalChecks } from "@/lib/content/checks";
+import { arrayField } from "@/lib/json";
 import { prisma } from "@/lib/prisma";
 import { ArticleEditor } from "@/components/article-editor";
 
 type PageProps = { params: Promise<{ siteId: string; articleId: string }> };
 
-function parseUnsupportedClaims(checks: string | null): string[] {
-  if (!checks) return [];
-  try {
-    const parsed = JSON.parse(checks) as { unsupportedClaims?: unknown };
-    return Array.isArray(parsed.unsupportedClaims)
-      ? parsed.unsupportedClaims.filter((c): c is string => typeof c === "string")
-      : [];
-  } catch {
-    return [];
-  }
+function parseUnsupportedClaims(checks: unknown): string[] {
+  return arrayField<unknown>(checks, "unsupportedClaims").filter(
+    (claim): claim is string => typeof claim === "string",
+  );
 }
 
 export default async function ArticlePage({ params }: PageProps) {

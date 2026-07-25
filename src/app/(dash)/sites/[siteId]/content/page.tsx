@@ -4,6 +4,7 @@ import { isAiConfigured } from "@/lib/ai/client";
 import { requireUser } from "@/lib/auth";
 import { isBrandVoiceUsable, parseBrandVoice } from "@/lib/brand-voice";
 import { countWords } from "@/lib/content/checks";
+import { arrayField } from "@/lib/json";
 import { prisma } from "@/lib/prisma";
 import { cn } from "@/lib/utils";
 import { TopicPicker } from "@/components/topic-picker";
@@ -24,14 +25,10 @@ const STATUS_TONE: Record<string, "neutral" | "positive" | "negative" | "accent"
   failed: "negative",
 };
 
-function countBlockers(checks: string | null): number {
-  if (!checks) return 0;
-  try {
-    const parsed = JSON.parse(checks) as { issues?: { severity: string }[] };
-    return (parsed.issues ?? []).filter((issue) => issue.severity === "blocker").length;
-  } catch {
-    return 0;
-  }
+function countBlockers(checks: unknown): number {
+  return arrayField<{ severity?: string }>(checks, "issues").filter(
+    (issue) => issue.severity === "blocker",
+  ).length;
 }
 
 export default async function ContentPage({ params, searchParams }: PageProps) {

@@ -53,7 +53,7 @@ export default async function AccountPage() {
     provider: connection.provider,
     accountLabel: connection.accountLabel,
     status: connection.status,
-    scopes: connection.scopes.split(" ").filter(Boolean),
+    scopes: connection.scopes,
     expiresAt: connection.expiresAt?.toISOString() ?? null,
     hasRefreshToken: Boolean(connection.encRefreshToken),
     connectedAt: connection.createdAt.toISOString(),

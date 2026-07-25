@@ -25,14 +25,11 @@ export type BrandVoice = z.infer<typeof brandVoiceSchema>;
 
 export const EMPTY_BRAND_VOICE: BrandVoice = brandVoiceSchema.parse({});
 
-export function parseBrandVoice(stored: string | null): BrandVoice | null {
+/** Reads the jsonb column straight through Zod — no JSON.parse step. */
+export function parseBrandVoice(stored: unknown): BrandVoice | null {
   if (!stored) return null;
-  try {
-    const parsed = brandVoiceSchema.safeParse(JSON.parse(stored));
-    return parsed.success ? parsed.data : null;
-  } catch {
-    return null;
-  }
+  const parsed = brandVoiceSchema.safeParse(stored);
+  return parsed.success ? parsed.data : null;
 }
 
 /** True once there is enough here to be worth sending to the model. */

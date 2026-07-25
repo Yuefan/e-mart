@@ -1,11 +1,7 @@
-// AI Marketing Dashboard — data model
-// Slice 1: Google OAuth (Connection) + GSC data (Site / Binding / GscDaily)
+// AI Marketing Dashboard — data model (spec §3)
 //
-// Provider is sqlite for local dev. Moving to Postgres later means:
-//   1. datasource provider -> "postgresql"
-//   2. `scopes` String -> String[]   (currently space-separated)
-//   3. `meta` / `config` / `logs` String -> Json
-//   4. `provider` String -> enum Provider
+// PostgreSQL. JSON columns are real jsonb, scopes is a text[], and provider is
+// an enum — the SQLite build flattened all three into strings.
 
 generator client {
   provider = "prisma-client-js"
@@ -14,7 +10,14 @@ generator client {
 // Prisma 7: the connection URL lives in prisma.config.ts (Migrate) and is
 // supplied to PrismaClient via a driver adapter (see src/lib/prisma.ts).
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
+}
+
+enum Provider {
+  GOOGLE
+  CLOUDFLARE
+  GITHUB
+  SHOPIFY
 }
 
 model User {
@@ -28,12 +31,13 @@ model User {
 }
 
 model Site {
-  id         String   @id @default(cuid())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name       String
-  domain     String
-  brandVoice String? // JSON: { tone, audience, keywords[], forbidden[] }
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name   String
+  domain String
+  /// { tone, audience, language, coreTopics[], keywords[], forbidden[], wordCountRange, referenceUrls[], imageStyle }
+  brandVoice Json?
   createdAt  DateTime @default(now())
 
   bindings Binding[]
@@ -45,18 +49,18 @@ model Site {
   @@unique([userId, domain])
 }
 
-/// provider: GOOGLE | CLOUDFLARE | GITHUB | SHOPIFY
 model Connection {
   id              String    @id @default(cuid())
   userId          String
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  provider        String
+  provider        Provider
   accountLabel    String // "yuffy@gmail.com" / "roarland.myshopify.com"
   encAccessToken  Bytes // AES-256-GCM: iv | tag | ciphertext
   encRefreshToken Bytes?
   expiresAt       DateTime?
-  scopes          String    @default("") // space-separated
-  meta            String? // JSON
+  scopes          String[]
+  /// { sub, installationId, shop, accountId, ... }
+  meta            Json?
   status          String    @default("active") // active | expired | revoked
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
@@ -74,7 +78,8 @@ model Binding {
   connection   Connection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
   /// sc-domain:songolab.com | zoneId | owner/repo | shop domain
   resourceId   String
-  config       String? // JSON: { branch, contentPath, blogId, ... }
+  /// { branch, contentPath, blogId, ... }
+  config       Json?
   createdAt    DateTime   @default(now())
 
   @@unique([siteId, connectionId, resourceId])
@@ -84,6 +89,10 @@ model Binding {
 model GscDaily {
   siteId String
   site   Site   @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  /// Deliberately a timestamp, not @db.Date. Every row is written at UTC
+  /// midnight and read back with toISOString(); a `date` column comes back
+  /// through node-postgres as *local* midnight, which shifts the day for any
+  /// non-UTC server — and the day is part of this table's primary key.
   date   DateTime
   /// total | query | page | country | device
   dimension   String
@@ -100,13 +109,13 @@ model GscDaily {
 
 model JobRun {
   id       String  @id @default(cuid())
-  type     String // gsc_sync | seo_audit | token_refresh | health_check
+  type     String // gsc_sync | seo_audit | token_refresh | health_check | content_ideate | content_generate
   siteId   String?
   site     Site?   @relation(fields: [siteId], references: [id], onDelete: Cascade)
   status   String  @default("queued") // queued | running | done | failed
   progress Int     @default(0)
-  payload  String? // JSON job arguments
-  logs     String? // JSON
+  payload  Json?
+  logs     Json?
   error    String?
   attempts Int     @default(0)
 
@@ -132,12 +141,12 @@ model SeoAudit {
   triggeredBy String // cron | manual
   status      String // queued | running | done | failed
   score       Int? // 0-100
-  summary     String?
-  /// JSON: the evidence pack sent to the model, kept so a run can be reproduced.
-  rawInput    String?
-  /// JSON: { model, promptVersion, inputTokens, outputTokens, costUsd }
-  aiMeta      String?
-  error       String?
+  summary     String?   @db.Text
+  /// The evidence pack sent to the model, kept so a run can be reproduced.
+  rawInput    Json?
+  /// { model, promptVersion, inputTokens, outputTokens, costUsd }
+  aiMeta      Json?
+  error       String?   @db.Text
   findings    Finding[]
   createdAt   DateTime  @default(now())
   finishedAt  DateTime?
@@ -152,29 +161,29 @@ model Article {
   site          Site    @relation(fields: [siteId], references: [id], onDelete: Cascade)
   title         String
   slug          String
-  excerpt       String?
-  bodyMd        String
+  excerpt       String? @db.Text
+  bodyMd        String  @db.Text
   metaTitle     String?
   metaDesc      String?
   targetKeyword String?
-  /// Search intent the piece is written for: informational | commercial | transactional | navigational
+  /// informational | commercial | transactional | navigational
   searchIntent  String?
 
   coverImageUrl String?
-  /// JSON: [{ url, alt, prompt, placeholder }]
-  images        String?
+  /// [{ url, alt, prompt, placeholder }]
+  images        Json?
 
   /// draft | review | scheduled | published | failed
   status      String    @default("draft")
   scheduledAt DateTime?
   publishedAt DateTime?
 
-  /// JSON: the outline the body was written from, kept so a rewrite can reuse it.
-  outline String?
-  /// JSON: self-check results — { passed, issues[], duplicateOf }
-  checks  String?
-  /// JSON: { model, promptVersion, inputTokens, outputTokens, costUsd }
-  aiMeta  String?
+  /// The outline the body was written from, kept so a rewrite can reuse it.
+  outline Json?
+  /// Self-check results — { issues[], unsupportedClaims[], reviewed }
+  checks  Json?
+  /// { model, promptVersion, inputTokens, outputTokens, costUsd }
+  aiMeta  Json?
 
   targets   PublishTarget[]
   createdAt DateTime        @default(now())
@@ -185,17 +194,16 @@ model Article {
 }
 
 model PublishTarget {
-  id        String  @id @default(cuid())
+  id        String   @id @default(cuid())
   articleId String
-  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  /// SHOPIFY | GITHUB | CLOUDFLARE
-  provider  String
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  provider  Provider
   /// Shopify article gid / commit sha / deployment id
   externalId  String?
   externalUrl String?
   /// pending | success | failed
   status      String   @default("pending")
-  error       String?
+  error       String?  @db.Text
   createdAt   DateTime @default(now())
 
   @@index([articleId])
@@ -207,15 +215,15 @@ model Finding {
   audit       SeoAudit @relation(fields: [auditId], references: [id], onDelete: Cascade)
   severity    String // critical | high | medium | low
   category    String // technical | content | onpage | performance | indexing
-  url         String?
-  title       String
-  detail      String
-  suggestion  String
+  url         String?  @db.Text
+  title       String   @db.Text
+  detail      String   @db.Text
+  suggestion  String   @db.Text
   /// Set for rule-engine findings so the UI can show what was measured.
-  evidence    String? // JSON
+  evidence    Json?
   source      String   @default("ai") // rule | ai
   autoFixable Boolean  @default(false)
-  fixPayload  String? // JSON
+  fixPayload  Json?
   status      String   @default("open") // open | fixing | fixed | ignored
 
   @@index([auditId, severity])

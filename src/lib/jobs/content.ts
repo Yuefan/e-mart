@@ -272,20 +272,20 @@ export async function runContentGenerate(
       searchIntent: topic.searchIntent,
       // Blockers park the draft in review rather than presenting it as ready.
       status: blockers > 0 ? "review" : "draft",
-      outline: JSON.stringify(outline),
-      checks: JSON.stringify({
+      outline,
+      checks: {
         issues: allIssues,
         unsupportedClaims: review?.unsupportedClaims ?? [],
         reviewed: Boolean(review),
-      }),
-      aiMeta: JSON.stringify({
+      },
+      aiMeta: {
         promptVersion: PROMPT_VERSION,
         costUsd: totalCost,
         steps: {
           outline: outlineResult.usage,
           article: articleResult.usage,
         },
-      }),
+      },
     },
   });
 

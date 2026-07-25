@@ -20,7 +20,7 @@ let contents = existsSync(envPath)
   : readFileSync(examplePath, "utf8");
 
 const generated = [];
-for (const key of ["ENCRYPTION_KEY", "SESSION_SECRET"]) {
+for (const key of ["ENCRYPTION_KEY", "SESSION_SECRET", "POSTGRES_PASSWORD"]) {
   const empty = new RegExp(`^${key}=("")?\\s*$`, "m");
   if (empty.test(contents)) {
     contents = contents.replace(empty, `${key}="${randomBytes(32).toString("hex")}"`);

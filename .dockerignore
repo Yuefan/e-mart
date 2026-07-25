@@ -8,7 +8,7 @@ node_modules
 .env.*
 !.env.example
 
-# Local database. The deployed one lives on a volume.
+# Stray local database files from the SQLite era.
 *.db
 *.db-journal
 *.db-wal

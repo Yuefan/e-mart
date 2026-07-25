@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { CATEGORIES, SEVERITIES } from "@/lib/ai/schemas";
 import { requireUser } from "@/lib/auth";
+import { arrayField } from "@/lib/json";
 import { prisma } from "@/lib/prisma";
 import { AuditButton } from "@/components/audit-button";
 import { FindingsList } from "@/components/findings-list";
@@ -54,17 +55,9 @@ export default async function SeoPage({ params, searchParams }: PageProps) {
     ? await prisma.finding.count({ where: { auditId: latest.id } })
     : 0;
 
-  const priorityActions: string[] = (() => {
-    if (!latest?.rawInput) return [];
-    try {
-      const parsed = JSON.parse(latest.rawInput) as { priorityActions?: unknown };
-      return Array.isArray(parsed.priorityActions)
-        ? parsed.priorityActions.filter((a): a is string => typeof a === "string")
-        : [];
-    } catch {
-      return [];
-    }
-  })();
+  const priorityActions = arrayField<unknown>(latest?.rawInput, "priorityActions").filter(
+    (action): action is string => typeof action === "string",
+  );
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-8">

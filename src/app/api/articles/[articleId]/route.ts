@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getApiUser } from "@/lib/auth";
 import { parseBrandVoice } from "@/lib/brand-voice";
 import { countWords, runMechanicalChecks } from "@/lib/content/checks";
+import { asRecord } from "@/lib/json";
 import { prisma } from "@/lib/prisma";
 
 type Params = { params: Promise<{ articleId: string }> };
@@ -70,17 +71,11 @@ export async function PATCH(request: Request, { params }: Params) {
     siteDomain: article.site.domain,
   });
 
-  const previousChecks = (() => {
-    try {
-      return updated.checks ? JSON.parse(updated.checks) : {};
-    } catch {
-      return {};
-    }
-  })();
-
+  // Preserve whatever the generation run recorded (unsupportedClaims, reviewed)
+  // and replace only the mechanical verdict.
   await prisma.article.update({
     where: { id: articleId },
-    data: { checks: JSON.stringify({ ...previousChecks, issues }) },
+    data: { checks: { ...(asRecord(updated.checks) ?? {}), issues } },
   });
 
   return NextResponse.json({

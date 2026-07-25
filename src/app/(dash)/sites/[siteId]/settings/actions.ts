@@ -54,7 +54,7 @@ export async function saveBrandVoice(
 
   await prisma.site.update({
     where: { id: siteId },
-    data: { brandVoice: JSON.stringify(parsed.data) },
+    data: { brandVoice: parsed.data },
   });
 
   revalidatePath(`/sites/${siteId}/settings`);

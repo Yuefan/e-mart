@@ -7,19 +7,14 @@
 #             worker (tsx needs the sources) and `prisma migrate deploy`
 #             (the CLI and the migrations folder are not in standalone).
 #
-# better-sqlite3 is a native module, so it is compiled inside the image for the
-# target platform. Never copy a host-built node_modules in.
+# No native modules any more: pg is pure JavaScript, so there is no compiler
+# toolchain in the image and no per-platform build to get wrong.
 
 ARG NODE_VERSION=24-bookworm-slim
 
 # ---------- dependencies ----------
 FROM node:${NODE_VERSION} AS deps
 WORKDIR /app
-
-# python3/make/g++ are needed to compile better-sqlite3 from source.
-RUN apt-get update \
- && apt-get install -y --no-install-recommends python3 make g++ ca-certificates \
- && rm -rf /var/lib/apt/lists/*
 
 COPY package.json package-lock.json ./
 COPY prisma ./prisma
@@ -59,9 +54,8 @@ ENV HOSTNAME=0.0.0.0
 RUN addgroup --system --gid 1001 nodejs \
  && adduser --system --uid 1001 nextjs
 
-# standalone carries only the traced dependencies, including the compiled
-# better_sqlite3.node. Static assets and public/ are not traced and must be
-# copied alongside it.
+# standalone carries only the traced dependencies. Static assets and public/
+# are not traced and must be copied alongside it.
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public

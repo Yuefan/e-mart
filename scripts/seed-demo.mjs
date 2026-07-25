@@ -9,17 +9,18 @@
 // Re-running replaces the previous demo rows.
 
 import path from "node:path";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 
 process.loadEnvFile(path.join(process.cwd(), ".env"));
 
-const rawUrl = process.env.DATABASE_URL ?? "file:./prisma/dev.db";
-const url = rawUrl.startsWith("file:")
-  ? `file:${path.resolve(process.cwd(), rawUrl.slice(5)).replace(/\\/g, "/")}`
-  : rawUrl;
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+  console.error("DATABASE_URL is not set — see docs/deployment.md.");
+  process.exit(1);
+}
 
-const prisma = new PrismaClient({ adapter: new PrismaBetterSqlite3({ url }) });
+const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
 
 const DAYS = 180;
 const DAY_MS = 86_400_000;
@@ -162,7 +163,7 @@ async function main() {
       status: "done",
       progress: 100,
       finishedAt: new Date(),
-      logs: JSON.stringify({ seeded: true, rows: records.length }),
+      logs: { seeded: true, rows: records.length },
     },
   });
 
@@ -182,7 +183,7 @@ async function seedBrandVoiceAndDraft(siteId) {
   await prisma.site.update({
     where: { id: siteId },
     data: {
-      brandVoice: JSON.stringify({
+      brandVoice: {
         tone: "professional but approachable, engineer-to-engineer",
         audience: "EU/US procurement managers and hardware engineers",
         language: "en-US",
@@ -192,7 +193,7 @@ async function seedBrandVoiceAndDraft(siteId) {
         wordCountRange: [1200, 1800],
         referenceUrls: [],
         imageStyle: "clean product photography, soft studio lighting, no text overlay",
-      }),
+      },
     },
   });
 
@@ -273,7 +274,7 @@ higher of the two.
       targetKeyword: "posture sensor",
       searchIntent: "commercial",
       status: "draft",
-      checks: JSON.stringify({ issues: [], seeded: true }),
+      checks: { issues: [], seeded: true },
     },
   });
 }

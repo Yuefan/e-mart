@@ -35,16 +35,8 @@ export async function GET(_request: Request, { params }: Params) {
     error: job.error,
     startedAt: job.startedAt,
     finishedAt: job.finishedAt,
-    logs: job.logs ? safeParse(job.logs) : null,
+    logs: job.logs ?? null,
     workerLikelyDown,
     staleAfterMs: STALE_AFTER_MS,
   });
-}
-
-function safeParse(value: string): unknown {
-  try {
-    return JSON.parse(value);
-  } catch {
-    return value;
-  }
 }

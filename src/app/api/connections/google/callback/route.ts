@@ -103,14 +103,14 @@ export async function GET(request: Request) {
         encAccessToken,
         encRefreshToken,
         expiresAt,
-        scopes: grantedScopes.join(" "),
-        meta: JSON.stringify({ sub: profile.sub }),
+        scopes: grantedScopes,
+        meta: { sub: profile.sub },
         status: "active",
       },
       update: {
         encAccessToken,
         expiresAt,
-        scopes: grantedScopes.join(" "),
+        scopes: grantedScopes,
         status: "active",
         // Google omits refresh_token when the user has already consented;
         // never overwrite a good one with undefined.

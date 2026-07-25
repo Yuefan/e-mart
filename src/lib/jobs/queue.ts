@@ -1,16 +1,16 @@
 import { hostname } from "node:os";
 import type { JobRun } from "@prisma/client";
+import { jsonOrDbNull } from "@/lib/json";
 import { prisma } from "@/lib/prisma";
 
 /**
  * A job queue backed by the JobRun table.
  *
- * The spec calls for BullMQ, which needs Redis; this machine has neither Redis
- * nor Docker. A single-consumer polling queue over SQLite covers the same
- * contract — durable jobs, idempotent scheduling, retries with backoff — and
- * keeps the deployment to one process plus one file. Swapping in BullMQ later
- * means reimplementing this module and nothing else: callers only ever see
- * `enqueue` and the worker only ever sees `claimNext`.
+ * The spec calls for BullMQ, which needs Redis. A single-consumer polling queue
+ * over the app's own Postgres covers the same contract — durable jobs,
+ * idempotent scheduling, retries with backoff — without a second datastore.
+ * Swapping in BullMQ later means reimplementing this module and nothing else:
+ * callers only ever see `enqueue` and the worker only ever sees `claimNext`.
  */
 
 export type JobType =
@@ -43,7 +43,7 @@ export async function enqueue(options: EnqueueOptions): Promise<JobRun | null> {
   const data = {
     type: options.type,
     siteId: options.siteId ?? null,
-    payload: options.payload === undefined ? null : JSON.stringify(options.payload),
+    payload: jsonOrDbNull(options.payload),
     dedupeKey: options.dedupeKey ?? null,
     runAfter: options.runAfter ?? new Date(),
     status: "queued",
@@ -97,7 +97,7 @@ export async function claimNext(): Promise<JobRun | null> {
         status: "running",
         claimedAt: new Date(),
         attempts: { increment: 1 },
-        logs: JSON.stringify({ workerId }),
+        logs: { workerId },
       },
     });
     if (claimed.count === 1) return prisma.jobRun.findUnique({ where: { id: candidate.id } });
@@ -114,7 +114,7 @@ export async function completeJob(jobId: string, logs?: unknown): Promise<void> 
       progress: 100,
       finishedAt: new Date(),
       error: null,
-      ...(logs === undefined ? {} : { logs: JSON.stringify(logs) }),
+      ...(logs === undefined ? {} : { logs: jsonOrDbNull(logs) }),
     },
   });
 }
@@ -158,10 +158,5 @@ export async function reclaimStale(): Promise<number> {
 }
 
 export function parsePayload<T>(job: JobRun): T | null {
-  if (!job.payload) return null;
-  try {
-    return JSON.parse(job.payload) as T;
-  } catch {
-    return null;
-  }
+  return (job.payload as T | null) ?? null;
 }

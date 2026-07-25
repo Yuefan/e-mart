@@ -1,6 +1,6 @@
 # AI Marketing Dashboard
 
-按 [`ai-marketing-dashboard-spec.md`](./ai-marketing-dashboard-spec.md) 实现。当前完成 **P0 的第一块**：Google 授权 + Search Console 数据面板。
+按 [`ai-marketing-dashboard-spec.md`](./ai-marketing-dashboard-spec.md) 实现。当前完成 **P0 / P1 / P2**：Google 授权与 GSC 面板、AI SEO 诊断、内容生产。
 
 ## 已实现
 
@@ -45,8 +45,13 @@
 
 ```bash
 npm install
-npm run setup:env          # 生成 ENCRYPTION_KEY / SESSION_SECRET
-npm run db:migrate         # 建库（SQLite，落在 prisma/dev.db）
+npm run setup:env          # 生成 ENCRYPTION_KEY / SESSION_SECRET / POSTGRES_PASSWORD
+```
+
+数据库是 **PostgreSQL**。本地三选一（详见 [`docs/deployment.md`](./docs/deployment.md)）：用 compose 只起 `db` 服务、用 Neon 之类的托管 Postgres、或本机装一个。连接串填进 `.env` 的 `DATABASE_URL`，然后：
+
+```bash
+npx prisma migrate deploy  # 建表
 ```
 
 然后按 [`docs/google-oauth-setup.md`](./docs/google-oauth-setup.md) 拿到 Google OAuth 凭据，填进 `.env`：
@@ -108,6 +113,7 @@ npm run db:seed:demo       # 造 180 天合成数据，站点名 "Demo (syntheti
 | `npm run db:studio` | Prisma Studio 看数据 |
 | `npm run db:seed:demo` | 合成演示数据 |
 | `npm run db:reset` | 清库重建 |
+| `npx prisma migrate deploy` | 只应用已有迁移（生产） |
 
 ## 部署
 
@@ -117,20 +123,20 @@ npm run db:seed:demo       # 造 180 天合成数据，站点名 "Demo (syntheti
 docker compose --env-file .env.production up -d --build
 ```
 
-**Cloudflare Workers 跑不了这个应用**——原生模块、常驻 worker 进程、6.5 分钟的抓取任务，三个都撞在 Workers 的模型上。文档里写了真要迁需要改什么。
+**Cloudflare Workers 跑不了这个应用**——常驻 worker 进程和 6.5 分钟的抓取任务都撞在 Workers 的模型上。文档里写了真要迁需要改什么。
 
 ## 与 spec 的差异
 
 写在代码里的偏离，都是有理由的，不是漏做：
 
-1. **SQLite 而非 Postgres**。本机没有 Docker/Postgres。schema 结构与 spec 一致，切换只需改 `prisma/schema.prisma` 的 `provider`，并把 `scopes`（现为空格分隔字符串）还原成 `String[]`、`meta`/`config`/`logs` 还原成 `Json`、`provider` 还原成 enum。`src/lib/db-url.ts` 对非 `file:` URL 是空操作。
+1. ~~SQLite 而非 Postgres~~ **已按 spec 用 PostgreSQL**。JSON 列是真 jsonb、`scopes` 是 `text[]`、`provider` 是 enum。`GscDaily.date` 特意用 timestamp 而非 `@db.Date`——node-postgres 把 `DATE` 列按本地时区解析，在 +08:00 会把日期退一天，而日期是那张表主键的一部分。
 2. **登录 = Google 授权**，没有独立的邮箱密码登录。单人单 Workspace 场景下多一套密码是纯负担；`User.passwordHash` 留到多租户时再加。
-3. **队列用数据库，不是 BullMQ**。BullMQ 要 Redis，这台机器没有。`JobRun` 表加了 `status/runAfter/dedupeKey/attempts`，worker 轮询领取，用条件 `updateMany` 做锁、`dedupeKey` 唯一索引做定时幂等、`claimedAt` 超时回收僵尸任务。语义和 spec §8 一致，迁 VPS 时换 BullMQ 只需重写 `src/lib/jobs/queue.ts` —— 调用方只见 `enqueue`，worker 只见 `claimNext`。
+3. **队列用数据库，不是 BullMQ**。BullMQ 要 Redis，不想为这点量再加一个数据存储。`JobRun` 表加了 `status/runAfter/dedupeKey/attempts`，worker 轮询领取，用条件 `updateMany` 做锁、`dedupeKey` 唯一索引做定时幂等、`claimedAt` 超时回收僵尸任务。语义和 spec §8 一致，要换 BullMQ 只需重写 `src/lib/jobs/queue.ts` —— 调用方只见 `enqueue`，worker 只见 `claimNext`。
    手动 Sync 仍然内联跑（十几秒，用户点了就想看到结果）；SEO 诊断走队列（要几分钟）。
 4. **抓取很慢，这是故意的**。50 个页面并发 2、每次间隔 300ms、429/503 按 `Retry-After` 退避重试。在 geeujade.com（Shopify）上一次诊断约 6.5 分钟。第一版并发 4 无延迟，结果被站点限流，产出 14 条「页面无法访问」的**假阳性**——报告说页面坏了，其实是我把它请求崩了。现在 429 收敛成一条 low 级别的「本次抓取被限流，这些页没审到」，和真正的 404 分开。
 5. **OAuth state 存签名 cookie 而非 Redis**。10 分钟 TTL、httpOnly、一次性消费，语义与 spec 一致，少一个依赖。
 6. **不做双 Y 轴曲线**。spec §5.1 画的是「左点击右曝光」，但两条不同量纲的线共用一张图时，交叉点看起来有意义、实际是缩放造成的假象。改成每个指标一张小图（small multiples），共享 X 轴，虚线叠加上一周期。指标 chip 可切换 CTR / 平均排名。
-7. **聚合在 JS 里做，不是 SQL**。每个维度每个同步窗口上限 25k 行，读取量很小；这样查询层不依赖 SQLite 的日期存储格式，迁 Postgres 时不用重写。
+7. **聚合在 JS 里做，不是 SQL**。每个维度每个同步窗口上限 25k 行，读取量很小。数据量真涨起来了再下推到 SQL。
 8. **AI 走官方 SDK，不走 OpenAI 兼容 shim**。spec §6.1 写的是 `/v1` 中转，这里用 `@anthropic-ai/sdk` + `baseURL` 指向中转的 Anthropic 端点（New API / LiteLLM 都提供）。这样结构化输出、adaptive thinking、refusal 处理都还在；用 OpenAI shim 会全丢。**代价是你的中转必须有 `/v1/messages`，不能只有 `/v1/chat/completions`** —— 只有后者的话告诉我，我改用 tool_use 兜底。
 9. **模型默认 `claude-opus-5`**，不是 spec 写的 `claude-sonnet-4-6`（那个 ID 还有效，只是不是当前最强）。全部走环境变量，改一行就能降级；`docs/ai-gateway-setup.md` 里有成本对照。
 10. **重复检测用 token 重合度，不是 embedding**。spec §5.3 写的是 embedding 余弦 > 0.85，那需要额外的 embedding API。现在用标题 token 的 Jaccard 重合度（带朴素复数归并）> 0.6 判定近重复。够用且零额外依赖，接了 embedding 再换。
@@ -139,6 +145,5 @@ docker compose --env-file .env.production up -d --build
 ## 下一步（按 spec 的交付计划）
 
 - **P1 剩余**：Cloudflare scoped token（zone 状态 / DNS / 缓存清除）、GitHub App（读代码进诊断证据包、修复以 PR 交付）
-- **P2**：brandVoice 配置、选题 → 大纲 → 正文 → 配图全链路
 - **P3**：Shopify OAuth、blog 发布、页面 SEO 巡检
 - 诊断的 `autoFixable` 发现目前只展示不执行——落点是 Shopify `pageUpdate` 和 GitHub PR，等那两个连接接上才能一键采纳

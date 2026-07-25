@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import type { ZodType } from "zod";
+import { numberField } from "@/lib/json";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -129,21 +130,23 @@ export async function monthlySpendUsd(): Promise<number> {
   const now = new Date();
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 
-  const audits = await prisma.seoAudit.findMany({
-    where: { createdAt: { gte: monthStart }, aiMeta: { not: null } },
-    select: { aiMeta: true },
-  });
+  const [audits, articles] = await Promise.all([
+    prisma.seoAudit.findMany({
+      where: { createdAt: { gte: monthStart } },
+      select: { aiMeta: true },
+    }),
+    // Content generation is the other spender; leaving it out understated the
+    // month and let the ceiling be walked straight past.
+    prisma.article.findMany({
+      where: { createdAt: { gte: monthStart } },
+      select: { aiMeta: true },
+    }),
+  ]);
 
-  let total = 0;
-  for (const audit of audits) {
-    try {
-      const meta = JSON.parse(audit.aiMeta!) as { costUsd?: number };
-      if (typeof meta.costUsd === "number") total += meta.costUsd;
-    } catch {
-      // Malformed row — skip rather than fail the budget check.
-    }
-  }
-  return total;
+  return [...audits, ...articles].reduce(
+    (total, row) => total + (numberField(row.aiMeta, "costUsd") ?? 0),
+    0,
+  );
 }
 
 async function assertWithinBudget(): Promise<void> {

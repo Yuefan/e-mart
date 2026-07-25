@@ -1,20 +1,20 @@
 # 部署
 
-## 先说 Cloudflare Worker：不行
+数据库是 **PostgreSQL**。Prisma 一个 schema 只能有一个 provider，所以本地开发也用 Postgres——下面有不装 Docker 的办法。
 
-你问的两个选项里，Cloudflare Workers **不是"部署"，是重写**。三个硬阻塞：
+## 先说 Cloudflare Worker：不行
 
 | 阻塞 | 说明 |
 |---|---|
-| `better-sqlite3` 是原生模块 | Workers 是 V8 isolate，跑不了 native addon。数据层要整个换成 D1 或 Hyperdrive + Postgres |
 | 常驻 worker 进程 | Workers 没有常驻进程。轮询循环要拆成 Cron Triggers + Queues / Workflows |
 | 一次审计 6.5 分钟、50+ 子请求 | Paid 版单次调用 CPU 上限 5 分钟；Free 版子请求上限 50，光抓取就爆。要改写成 Workflow 分步执行 |
+| Prisma + Postgres | Workers 连 Postgres 要走 Hyperdrive，多一层，且连接池语义不同 |
 
-**Cloudflare Containers** 能跑现成镜像，但它是「持久身份、**磁盘易失**」——容器停了 SQLite 文件就没了，还是得外挂数据库；`sleepAfter` 也和常驻 worker 冲突。目前 beta，无 SLA。
+> 换成 Postgres 之后，原来"原生模块跑不了"这条不成立了（`pg` 是纯 JS）。但前两条还在，而且是架构级的。
 
-spec §2.2 本来就选了自建 VPS，理由正是这些。下面走 VPS。
+**Cloudflare Containers** 能跑镜像，但「持久身份、**磁盘易失**」，目前 beta 无 SLA。数据库反正是外挂的，所以磁盘这条影响变小了——真想试可以，但 `sleepAfter` 仍然和常驻 worker 冲突。
 
-> 真要上 Cloudflare 的话，改造量大致是：`prisma/schema.prisma` 换 D1 provider、`src/lib/prisma.ts` 换 `@prisma/adapter-d1`、`src/worker/` 整个删掉改成 Cron Trigger + Queue consumer、`runSeoAudit` 拆成 Workflow 的 step。评估成本前先想清楚值不值——这套东西一天跑几次，VPS 上一台 1C2G 绰绰有余。
+spec §2.2 选的是自建 VPS。下面走这条。
 
 ---
 
@@ -22,42 +22,38 @@ spec §2.2 本来就选了自建 VPS，理由正是这些。下面走 VPS。
 
 ### 需要什么
 
-- 一台能跑 Docker 的 Linux VPS（1 核 2G 足够）
-- 一个指向它的域名（Caddy 自动签 TLS 证书）
-- 80 和 443 端口可达
+- 一台能跑 Docker 的 Linux VPS（1 核 2G 够用，Postgres 不重）
+- 一个指向它的域名（Caddy 自动签 TLS）
+- 80 / 443 可达
 
 ### 1. 准备 .env.production
 
-在服务器上，仓库根目录：
-
 ```bash
 cp .env.example .env.production
-node -e "console.log('ENCRYPTION_KEY=\"'+require('crypto').randomBytes(32).toString('hex')+'\"')" >> .env.production
-node -e "console.log('SESSION_SECRET=\"'+require('crypto').randomBytes(32).toString('hex')+'\"')" >> .env.production
+npm run setup:env      # 生成 ENCRYPTION_KEY / SESSION_SECRET / POSTGRES_PASSWORD
 ```
 
-然后编辑，把这几项填对：
+`setup:env` 写的是 `.env`，把那三行挪到 `.env.production`，然后补齐：
 
 ```env
-APP_DOMAIN="dash.example.com"          # 给 Caddy 签证书用
-APP_URL="https://dash.example.com"     # 必须是公网 https 地址
+APP_DOMAIN="dash.example.com"
+APP_URL="https://dash.example.com"
+POSTGRES_PASSWORD="<刚生成的>"
 GOOGLE_CLIENT_ID="...apps.googleusercontent.com"
 GOOGLE_CLIENT_SECRET="GOCSPX-..."
 AI_BASE_URL="https://your-relay.example.com"
 AI_API_KEY="sk-..."
 ```
 
-**`DATABASE_URL` 不用填**——compose 里写死成 `file:/data/app.db`（挂载卷）。原因见下面「踩过的坑」。
+**`DATABASE_URL` 不用填**——compose 从 `POSTGRES_*` 拼出来，指向内部的 `db` 服务。
 
 ### 2. Google Cloud 加一条 redirect URI
 
-到 [OAuth 客户端](https://console.cloud.google.com/auth/clients) 里，**新增**（不是替换）：
+到 [OAuth 客户端](https://console.cloud.google.com/auth/clients)，**新增**（不是替换）：
 
 ```
 https://dash.example.com/api/connections/google/callback
 ```
-
-本地那条 `http://localhost:3000/...` 留着，两边都能用。
 
 ### 3. 起服务
 
@@ -65,11 +61,11 @@ https://dash.example.com/api/connections/google/callback
 docker compose --env-file .env.production up -d --build
 ```
 
-三个服务：`migrate` 跑一次迁移就退出 → `web`（Next.js standalone）和 `worker`（定时任务 + 队列）起来 → `caddy` 签证书并反代。
+顺序是 `db` 健康 → `migrate` 建表后退出 → `web` + `worker` 起来 → `caddy` 签证书。
 
 ```bash
-docker compose logs -f worker    # 看定时任务
-docker compose ps                # 看健康状态
+docker compose logs -f worker
+docker compose ps
 ```
 
 ### 4. 验一下
@@ -78,52 +74,77 @@ docker compose ps                # 看健康状态
 curl -s https://dash.example.com/api/diagnostics/google
 ```
 
-要看到 `"reachable": true`。如果服务器在国内需要代理，在 `.env.production` 里设 `HTTPS_PROXY`——`NODE_USE_ENV_PROXY=1` 已经在 Dockerfile 里了。
+要看到 `"reachable": true`。服务器在国内需要代理的话，`.env.production` 里设 `HTTPS_PROXY`（`NODE_USE_ENV_PROXY=1` 已在 Dockerfile 里）。注意 compose 默认把 `db` 加进了 `NO_PROXY`——数据库连接绝不能走代理。
+
+---
+
+## 本地开发（不用 Docker 也行）
+
+三选一：
+
+**a. 用 compose 只起数据库**（有 Docker 的话最省事）
+
+```bash
+docker compose --env-file .env up -d db
+# .env 里 DATABASE_URL 指向 localhost:5432 —— 需要把 db 的端口发布出来
+```
+
+**b. 托管 Postgres**（没 Docker 时用这个）
+
+[Neon](https://neon.tech) 之类的免费档就够。把连接串填进 `.env` 的 `DATABASE_URL` 即可，注意要带 `?sslmode=require`。
+
+**c. 本机装 Postgres**
+
+装完建库，连接串填进 `.env`。
+
+三种都一样，建表：
+
+```bash
+npm run db:migrate      # 开发环境，会生成新迁移
+# 或
+npx prisma migrate deploy   # 只应用已有迁移
+```
 
 ---
 
 ## 踩过的坑（都已验证）
 
-### DATABASE_URL 生产环境必须写绝对路径
-
-standalone 打包出来的服务，**工作目录是 `.next/standalone/`，不是项目根目录**。`file:./prisma/dev.db` 这种相对路径会指到一个不存在的地方，所有页面 500，报 `Cannot open database because the directory does not exist`。
-
-compose 里已经写死 `file:/data/app.db`（挂载卷的绝对路径）。自己手动部署时也要用绝对路径。
-
 ### 必须从干净的 .next 构建
 
-dev server 会在 `.next/dev/types/` 留下生成的路由类型。这些文件过期后，`next build` 的类型检查阶段会在**你根本没改过的生成文件**上报语法错误。Dockerfile 里构建前先 `rm -rf .next`。
+dev server 会在 `.next/dev/types/` 留下生成的路由类型。过期后 `next build` 的类型检查会在**你根本没改过的生成文件**上报语法错误。Dockerfile 里构建前先 `rm -rf .next`。
 
 ### standalone 不含 static 和 public
 
-Next 只把追踪到的依赖放进 `.next/standalone`。`.next/static` 和 `public/` 要另外拷。Dockerfile 已经处理了。
+Next 只把追踪到的依赖放进 `.next/standalone`。`.next/static` 和 `public/` 要另外拷，Dockerfile 已处理。
 
-### 原生模块必须在镜像里编译
+### 配置里的 path.resolve 会把整个项目打进包
 
-`better-sqlite3` 会编译出平台相关的 `.node` 文件。**不要**把本机的 `node_modules` 拷进镜像——`.dockerignore` 已经排除了。镜像里 `npm ci` 时会为 linux 重新编译，所以 deps 阶段装了 `python3 make g++`。
+`next.config.ts` 里任何文件系统调用都会让 Turbopack 判定无法静态分析，把 `src`、`docs`、spec 全拷进 standalone（34MB → 29MB 的差别）。`src/lib/db-url.ts` 里那处运行时路径解析加了 `turbopackIgnore` 注释。
+
+### GscDaily.date 是 timestamp 不是 date
+
+看着该用 `@db.Date`，但 node-postgres 把 `DATE` 列按**本地时区**解析。服务器在 +08:00 时，`toISOString().slice(0,10)` 会退一天——而日期是这张表主键的一部分。schema 里有注释说明。
 
 ### worker 不能跑多份
 
-`docker-compose.yml` 里锁了 `replicas: 1`。队列的领取锁保证的是**正确性**（不会重复执行），不是吞吐；两个 worker 还会争抢同一个 SQLite 文件。
+compose 里锁了 `replicas: 1`。队列的领取锁保证的是正确性，不是吞吐。
 
 ---
 
 ## 备份
 
-整个应用状态就是一个 SQLite 文件——加密后的凭证、GSC 数据、诊断结果、草稿全在里面。
-
 ```bash
-docker compose exec -T web sh -c 'cat /data/app.db' > backup-$(date +%F).db
+docker compose exec -T db pg_dump -U app -d marketing --clean --if-exists \
+  | gzip > backup-$(date +%F).sql.gz
 ```
 
-更规范的做法是用 SQLite 的在线备份（避免写入中途拷贝）：
+恢复：
 
 ```bash
-docker compose run --rm toolbox \
-  npx prisma db execute --stdin <<< "VACUUM INTO '/data/backup.db';"
+gunzip -c backup-2026-07-25.sql.gz | docker compose exec -T db psql -U app -d marketing
 ```
 
-**丢了 `ENCRYPTION_KEY` 就等于丢了所有第三方凭证**——数据库还在，但里面的 token 解不开，只能重新授权。把它和数据库分开备份。
+**丢了 `ENCRYPTION_KEY` 就等于丢了所有第三方凭证**——数据库还在，但里面的 token 解不开，只能重新授权。和数据库备份分开放。
 
 ---
 
@@ -134,7 +155,17 @@ git pull
 docker compose --env-file .env.production up -d --build
 ```
 
-`migrate` 服务每次都会先跑 `prisma migrate deploy`，`web` 和 `worker` 等它成功退出才启动。
+`migrate` 每次先跑 `prisma migrate deploy`，`web` 和 `worker` 等它成功退出才启动。
+
+改了 schema 的话，本地 `npm run db:migrate` 生成迁移文件、提交，服务器上 `migrate` 服务会自动应用。
+
+---
+
+## 从 SQLite 迁过来
+
+如果你本地那份 SQLite 里有想留的数据：GSC 数据**不用迁**，重新授权后 `Sync` 一次就从 Google 拉回来了。诊断结果和草稿要留的话，用 `npx prisma studio` 分别连两个库手工搬，量不大。
+
+凭证不用迁——重新走一次 Google 授权即可，而且更干净（新库、新 refresh token）。
 
 ---
 
@@ -146,21 +177,8 @@ npm run build
 npx prisma migrate deploy
 
 # 两个常驻进程，各自用 systemd 管
-DATABASE_URL="file:/srv/app/data/app.db" node .next/standalone/server.js
-DATABASE_URL="file:/srv/app/data/app.db" npm run worker
+DATABASE_URL="postgresql://..." node .next/standalone/server.js
+DATABASE_URL="postgresql://..." npm run worker
 ```
 
-注意 standalone 那份要自己把 `.next/static` 和 `public/` 拷进 `.next/standalone/`，以及 `DATABASE_URL` 用绝对路径。
-
----
-
-## 关于换 Postgres
-
-spec §2.1 写的是 Postgres。单人用 SQLite 完全够——一次同步几千行，一次诊断几十行。真要换：
-
-1. `prisma/schema.prisma` 的 `provider` 改 `postgresql`
-2. `scopes` 从空格分隔字符串还原成 `String[]`，`meta`/`config`/`logs`/`checks` 等还原成 `Json`，`provider` 还原成 enum
-3. `src/lib/prisma.ts` 换成 `@prisma/adapter-pg`
-4. compose 里加一个 postgres 服务
-
-`src/lib/db-url.ts` 对非 `file:` 的 URL 是空操作，不用改。
+standalone 那份记得自己把 `.next/static` 和 `public/` 拷进 `.next/standalone/`。
