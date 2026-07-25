@@ -18,7 +18,21 @@ spec §2.2 选的是自建 VPS。下面走这条。
 
 ---
 
-## VPS 部署
+## VPS 部署：一条命令
+
+在 VPS 上（Debian / Ubuntu）：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Yuefan/e-mart/main/scripts/deploy-vps.sh -o deploy.sh
+less deploy.sh            # 先读一遍再用 root 跑
+sudo bash deploy.sh
+```
+
+脚本会：装 Docker（如果没有）、克隆仓库、**生成密钥**、交互式问你域名和 Google / AI 凭据、起服务、验证连通性。
+
+**可以重复运行**：已存在的 `.env.production` 不会被覆盖。这点很重要——重新生成 `ENCRYPTION_KEY` 会让库里所有第三方 token 永久解不开。
+
+下面是手工步骤，想自己控制每一步的话看这个。
 
 ### 需要什么
 
