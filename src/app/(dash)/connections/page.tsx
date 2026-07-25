@@ -17,10 +17,12 @@ const PLANNED_PROVIDERS = [
 export default async function ConnectionsPage() {
   const user = await requireUser();
 
-  const google = await prisma.connection.findFirst({
+  const googleConnections = await prisma.connection.findMany({
     where: { userId: user.id, provider: "GOOGLE" },
-    select: { accountLabel: true, status: true, scopes: true, updatedAt: true },
+    orderBy: { createdAt: "asc" },
+    select: { accountLabel: true, status: true },
   });
+  const google = googleConnections[0] ?? null;
 
   // Fetched here rather than in the client so the list is server-rendered and
   // a failing Google call degrades into a message instead of a blank panel.
@@ -60,20 +62,29 @@ export default async function ConnectionsPage() {
             }
             hint={
               google
-                ? `${google.accountLabel} · read-only · connected ${google.updatedAt.toISOString().slice(0, 10)}`
+                ? `${googleConnections.map((c) => c.accountLabel).join(", ")} · read-only`
                 : "Authorize to list your verified properties"
             }
             action={
               <GoogleConnectButton
                 returnTo="/connections"
                 variant={google ? "secondary" : "primary"}
-                label={google ? "Re-authorize" : "Connect"}
+                label={google ? "Add account" : "Connect"}
               />
             }
           />
           {google ? (
             <PropertyPicker
-              accountLabel={propertyList?.accountLabel ?? google.accountLabel}
+              accounts={
+                propertyList?.accounts ??
+                googleConnections.map((connection, index) => ({
+                  connectionId: String(index),
+                  accountLabel: connection.accountLabel,
+                  status: connection.status,
+                  error: propertyError ?? null,
+                  propertyCount: 0,
+                }))
+              }
               properties={propertyList?.properties ?? []}
               error={propertyError}
             />

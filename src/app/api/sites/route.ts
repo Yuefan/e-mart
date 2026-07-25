@@ -8,6 +8,12 @@ const createSiteSchema = z.object({
   /** A GSC property id: `sc-domain:example.com` or `https://example.com/`. */
   siteUrl: z.string().min(1),
   name: z.string().min(1).optional(),
+  /**
+   * Which connected Google account owns this property. Required once more than
+   * one account is linked — picking the first would bind the site to an account
+   * that cannot read it.
+   */
+  connectionId: z.string().min(1).optional(),
 });
 
 /** Bind a Search Console property to a new Site. */
@@ -21,9 +27,14 @@ export async function POST(request: Request) {
   }
   const { siteUrl } = parsed.data;
 
-  const connection = await prisma.connection.findFirst({
-    where: { userId: user.id, provider: "GOOGLE" },
-  });
+  const connection = parsed.data.connectionId
+    ? await prisma.connection.findFirst({
+        where: { id: parsed.data.connectionId, userId: user.id, provider: "GOOGLE" },
+      })
+    : await prisma.connection.findFirst({
+        where: { userId: user.id, provider: "GOOGLE" },
+        orderBy: { createdAt: "asc" },
+      });
   if (!connection) {
     return NextResponse.json({ error: "no_google_connection" }, { status: 400 });
   }

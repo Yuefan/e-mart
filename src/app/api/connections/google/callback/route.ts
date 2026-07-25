@@ -7,7 +7,7 @@ import {
   fetchGoogleUserInfo,
 } from "@/lib/integrations/google/oauth";
 import { prisma } from "@/lib/prisma";
-import { consumeOAuthState, createSession } from "@/lib/session";
+import { consumeOAuthState, createSession, getSessionUserId } from "@/lib/session";
 
 function fail(reason: string, detail?: string) {
   const url = new URL(`${appUrl()}/login`);
@@ -51,17 +51,36 @@ export async function GET(request: Request) {
       return fail("search_console_scope_declined");
     }
 
-    // Signing in with Google *is* the app account for now — one Google
-    // identity, one Workspace. Email/password login lands with multi-tenant.
-    const user = await prisma.user.upsert({
-      where: { email: profile.email },
-      create: {
-        email: profile.email,
-        name: profile.name ?? null,
-        image: profile.picture ?? null,
-      },
-      update: { name: profile.name ?? null, image: profile.picture ?? null },
-    });
+    // Two different flows share this callback, told apart by whether a session
+    // already exists:
+    //
+    //   signed out -> this is a sign-in. Google identity becomes the app
+    //                 account (there is no separate password).
+    //   signed in  -> this is "add another Google account". The credential is
+    //                 attached to the *current* user and the session is left
+    //                 alone. Upserting a user here instead would silently
+    //                 switch workspaces and hide the first account's sites.
+    const signedInUserId = await getSessionUserId();
+    const currentUser = signedInUserId
+      ? await prisma.user.findUnique({ where: { id: signedInUserId } })
+      : null;
+
+    let userId: string;
+    if (currentUser) {
+      userId = currentUser.id;
+    } else {
+      const user = await prisma.user.upsert({
+        where: { email: profile.email },
+        create: {
+          email: profile.email,
+          name: profile.name ?? null,
+          image: profile.picture ?? null,
+        },
+        update: { name: profile.name ?? null, image: profile.picture ?? null },
+      });
+      userId = user.id;
+      await createSession(user.id);
+    }
 
     const encAccessToken = encryptSecret(tokens.access_token);
     const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
@@ -72,13 +91,13 @@ export async function GET(request: Request) {
     await prisma.connection.upsert({
       where: {
         userId_provider_accountLabel: {
-          userId: user.id,
+          userId,
           provider: "GOOGLE",
           accountLabel: profile.email,
         },
       },
       create: {
-        userId: user.id,
+        userId,
         provider: "GOOGLE",
         accountLabel: profile.email,
         encAccessToken,
@@ -99,7 +118,6 @@ export async function GET(request: Request) {
       },
     });
 
-    await createSession(user.id);
     return NextResponse.redirect(`${appUrl()}${stashed.returnTo}`);
   } catch (error) {
     console.error("[google/callback]", error);
