@@ -24,12 +24,24 @@ die()  { printf '\n\033[31m!!  %s\033[0m\n' "$*" >&2; exit 1; }
 
 command -v apt-get >/dev/null || die "This script assumes Debian/Ubuntu. On another distro, follow docs/deployment.md by hand."
 
+# Whether Caddy can own 80/443 decides the whole TLS story, so it is settled
+# up front rather than discovered when the container fails to bind.
+USE_CADDY=1
 say "Checking ports 80 and 443"
 for port in 80 443; do
   if ss -ltn "sport = :$port" 2>/dev/null | grep -q LISTEN; then
-    die "Port $port is already in use. Caddy needs both to issue a certificate. Stop the other service (often apache2 or nginx) first."
+    USE_CADDY=0
   fi
 done
+
+if [ "$USE_CADDY" -eq 0 ]; then
+  holder=$(ss -ltnp "sport = :80" 2>/dev/null | grep -oE 'users:\(\("[^"]+' | head -1 | cut -d'"' -f2)
+  warn "Port 80/443 already served by: ${holder:-another process}"
+  warn "Caddy will be left out. The app will listen on 127.0.0.1:3000 and you"
+  warn "point ${holder:-your web server} at it — the vhost is in docs/deployment.md."
+else
+  echo "    80 and 443 are free; Caddy will handle TLS."
+fi
 
 # ---------- docker ----------
 
@@ -144,7 +156,11 @@ fi
 # ---------- build and start ----------
 
 say "Building and starting (first build takes a few minutes)"
-docker compose --env-file "$ENV_FILE" up -d --build
+if [ "$USE_CADDY" -eq 1 ]; then
+  docker compose --env-file "$ENV_FILE" --profile caddy up -d --build
+else
+  docker compose --env-file "$ENV_FILE" up -d --build
+fi
 
 say "Waiting for migrations"
 if ! docker compose --env-file "$ENV_FILE" logs migrate 2>&1 | tail -20; then
@@ -172,6 +188,9 @@ curl -fsS --max-time 30 http://127.0.0.1:3000/api/diagnostics/google 2>/dev/null
 cat <<EOF
 
 $(printf '\033[1m')Next steps$(printf '\033[0m')
+
+  0. $( [ "$USE_CADDY" -eq 0 ] && echo "Add the reverse-proxy vhost for $APP_DOMAIN -> 127.0.0.1:3000
+     (see docs/deployment.md), then run: certbot --nginx -d $APP_DOMAIN" || echo "Caddy is issuing the certificate; give it a minute." )
 
   1. Add this exact redirect URI to your Google OAuth client
      (https://console.cloud.google.com/auth/clients) — keep the localhost one:

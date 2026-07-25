@@ -71,11 +71,50 @@ https://dash.example.com/api/connections/google/callback
 
 ### 3. 起服务
 
+**机器上没有别的 web 服务**（80/443 空着）——让 Caddy 接管 TLS：
+
+```bash
+docker compose --env-file .env.production --profile caddy up -d --build
+```
+
+**机器上已经跑着 nginx / 别的 web 服务**——不要带 `--profile caddy`，应用只绑 `127.0.0.1:3000`，用现有的 nginx 反代：
+
 ```bash
 docker compose --env-file .env.production up -d --build
 ```
 
-顺序是 `db` 健康 → `migrate` 建表后退出 → `web` + `worker` 起来 → `caddy` 签证书。
+顺序是 `db` 健康 → `migrate` 建表后退出 → `web` + `worker` 起来。
+
+#### 挂到现有 nginx 后面
+
+```nginx
+# /etc/nginx/sites-available/dash.conf
+server {
+    listen 80;
+    server_name dash.example.com;
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade           $http_upgrade;
+        proxy_set_header Connection        "upgrade";
+        # 手动 Sync 和诊断可能要几分钟才有第一个字节，默认 60s 会被切断
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+    }
+}
+```
+
+```bash
+ln -s /etc/nginx/sites-available/dash.conf /etc/nginx/sites-enabled/
+nginx -t && systemctl reload nginx
+certbot --nginx -d dash.example.com      # 签证书并自动改成 443
+```
+
+> 域名在 Cloudflare 且开了橙云的话，certbot 的 HTTP-01 会失败——Cloudflare 在边缘就终止了 TLS。**先把这条记录设成灰云**（DNS only），签完再决定要不要开回去。
 
 ```bash
 docker compose logs -f worker

@@ -95,7 +95,15 @@ services:
     deploy:
       replicas: 1
 
+  # Opt-in: `docker compose --profile caddy up -d`.
+  #
+  # Off by default because a server that already runs a web server — which is
+  # the common case when you are adding this to an existing box — has 80 and
+  # 443 taken. Binding them anyway would take that site down. Without this
+  # profile, `web` listens on 127.0.0.1:3000 and you point your existing nginx
+  # or Caddy at it; docs/deployment.md has the vhost.
   caddy:
+    profiles: ["caddy"]
     image: caddy:2-alpine
     depends_on:
       - web
@@ -107,7 +115,9 @@ services:
       - caddy-data:/data
       - caddy-config:/config
     environment:
-      APP_DOMAIN: ${APP_DOMAIN:?set APP_DOMAIN to your hostname}
+      # Only Caddy needs this; compose interpolates it even when the profile is
+      # off, so it cannot be a required variable.
+      APP_DOMAIN: ${APP_DOMAIN:-localhost}
     restart: unless-stopped
 
 volumes:
