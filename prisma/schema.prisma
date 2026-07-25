@@ -1,0 +1,165 @@
+// AI Marketing Dashboard — data model
+// Slice 1: Google OAuth (Connection) + GSC data (Site / Binding / GscDaily)
+//
+// Provider is sqlite for local dev. Moving to Postgres later means:
+//   1. datasource provider -> "postgresql"
+//   2. `scopes` String -> String[]   (currently space-separated)
+//   3. `meta` / `config` / `logs` String -> Json
+//   4. `provider` String -> enum Provider
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Prisma 7: the connection URL lives in prisma.config.ts (Migrate) and is
+// supplied to PrismaClient via a driver adapter (see src/lib/prisma.ts).
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id          String       @id @default(cuid())
+  email       String       @unique
+  name        String?
+  image       String?
+  createdAt   DateTime     @default(now())
+  sites       Site[]
+  connections Connection[]
+}
+
+model Site {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  domain     String
+  brandVoice String? // JSON: { tone, audience, keywords[], forbidden[] }
+  createdAt  DateTime @default(now())
+
+  bindings Binding[]
+  gscDaily GscDaily[]
+  jobRuns  JobRun[]
+  audits   SeoAudit[]
+
+  @@unique([userId, domain])
+}
+
+/// provider: GOOGLE | CLOUDFLARE | GITHUB | SHOPIFY
+model Connection {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider        String
+  accountLabel    String // "yuffy@gmail.com" / "roarland.myshopify.com"
+  encAccessToken  Bytes // AES-256-GCM: iv | tag | ciphertext
+  encRefreshToken Bytes?
+  expiresAt       DateTime?
+  scopes          String    @default("") // space-separated
+  meta            String? // JSON
+  status          String    @default("active") // active | expired | revoked
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  bindings Binding[]
+
+  @@unique([userId, provider, accountLabel])
+}
+
+model Binding {
+  id           String     @id @default(cuid())
+  siteId       String
+  site         Site       @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  connectionId String
+  connection   Connection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  /// sc-domain:songolab.com | zoneId | owner/repo | shop domain
+  resourceId   String
+  config       String? // JSON: { branch, contentPath, blogId, ... }
+  createdAt    DateTime   @default(now())
+
+  @@unique([siteId, connectionId, resourceId])
+}
+
+// ---- GSC data ----
+model GscDaily {
+  siteId String
+  site   Site   @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  date   DateTime
+  /// total | query | page | country | device
+  dimension   String
+  /// "" when dimension = total
+  dimValue    String
+  clicks      Int
+  impressions Int
+  ctr         Float
+  position    Float
+
+  @@id([siteId, date, dimension, dimValue])
+  @@index([siteId, dimension, date])
+}
+
+model JobRun {
+  id       String  @id @default(cuid())
+  type     String // gsc_sync | seo_audit | token_refresh | health_check
+  siteId   String?
+  site     Site?   @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  status   String  @default("queued") // queued | running | done | failed
+  progress Int     @default(0)
+  payload  String? // JSON job arguments
+  logs     String? // JSON
+  error    String?
+  attempts Int     @default(0)
+
+  /// Idempotency handle, e.g. "gsc_sync:daily:2026-07-25". A unique index is
+  /// what stops a repeatable job running twice for the same period.
+  dedupeKey String? @unique
+
+  /// Worker ignores rows until this moment — powers both scheduling and backoff.
+  runAfter   DateTime  @default(now())
+  startedAt  DateTime  @default(now()) // enqueued at
+  claimedAt  DateTime? // picked up by a worker
+  finishedAt DateTime?
+
+  @@index([siteId, startedAt])
+  @@index([status, runAfter])
+}
+
+// ---- SEO audit (spec §5.2) ----
+model SeoAudit {
+  id          String    @id @default(cuid())
+  siteId      String
+  site        Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  triggeredBy String // cron | manual
+  status      String // queued | running | done | failed
+  score       Int? // 0-100
+  summary     String?
+  /// JSON: the evidence pack sent to the model, kept so a run can be reproduced.
+  rawInput    String?
+  /// JSON: { model, promptVersion, inputTokens, outputTokens, costUsd }
+  aiMeta      String?
+  error       String?
+  findings    Finding[]
+  createdAt   DateTime  @default(now())
+  finishedAt  DateTime?
+
+  @@index([siteId, createdAt])
+}
+
+model Finding {
+  id          String   @id @default(cuid())
+  auditId     String
+  audit       SeoAudit @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  severity    String // critical | high | medium | low
+  category    String // technical | content | onpage | performance | indexing
+  url         String?
+  title       String
+  detail      String
+  suggestion  String
+  /// Set for rule-engine findings so the UI can show what was measured.
+  evidence    String? // JSON
+  source      String   @default("ai") // rule | ai
+  autoFixable Boolean  @default(false)
+  fixPayload  String? // JSON
+  status      String   @default("open") // open | fixing | fixed | ignored
+
+  @@index([auditId, severity])
+}

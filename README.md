@@ -1,36 +1,117 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AI Marketing Dashboard
 
-## Getting Started
+按 [`ai-marketing-dashboard-spec.md`](./ai-marketing-dashboard-spec.md) 实现。当前完成 **P0 的第一块**：Google 授权 + Search Console 数据面板。
 
-First, run the development server:
+## 已实现
+
+**P0 — GSC 数据管道**
+
+| 能力 | 位置 |
+|---|---|
+| Google OAuth 2.0 + PKCE 授权（登录即连接） | `src/app/api/connections/google/{start,callback}` |
+| 凭证 AES-256-GCM 加密落库、access token 到期前 5 分钟自动刷新 | `src/lib/crypto.ts`、`src/lib/integrations/google/oauth.ts` |
+| 列出账号下所有 GSC 资源，勾选绑定为 Site | `/connections` |
+| GSC 数据同步（5 个维度、分页、429/5xx 指数退避、窗口幂等重写） | `src/lib/jobs/gsc-sync.ts` |
+| KPI 卡 + 时序曲线 + Top Queries/Pages/国家/设备 | `/sites/[siteId]/overview` |
+| 衍生洞察：机会关键词 / 临界页面 / 下滑预警 | `src/lib/gsc-queries.ts` |
+| 常驻 worker + 定时任务（每日同步 / token 刷新 / 连接探活 / 每周诊断） | `src/worker/`、`src/lib/jobs/schedule.ts` |
+
+**P1 — AI SEO 诊断**
+
+| 能力 | 位置 |
+|---|---|
+| 现场抓取最多 50 个页面（限速退避、解析 title/meta/H1/canonical/OG/JSON-LD/alt/内链/hreflang） | `src/lib/seo/crawl.ts` |
+| 规则引擎：20+ 确定性检查，按真实曝光量加权严重度 | `src/lib/seo/rules.ts` |
+| AI 层：优先级排序、跨信号关联、可直接粘贴的标题/描述改写 | `src/lib/ai/`、`src/lib/jobs/seo-audit.ts` |
+| 评分环 + 摘要 + 按严重度分组、可按类别筛选的 Findings 列表 | `/sites/[siteId]/seo` |
+
+> Cloudflare / GitHub / Shopify 三路证据源还空着（需要对应凭证）。诊断目前跑在 GSC + 现场抓取上。
+
+## 快速开始
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run setup:env          # 生成 ENCRYPTION_KEY / SESSION_SECRET
+npm run db:migrate         # 建库（SQLite，落在 prisma/dev.db）
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+然后按 [`docs/google-oauth-setup.md`](./docs/google-oauth-setup.md) 拿到 Google OAuth 凭据，填进 `.env`：
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```env
+GOOGLE_CLIENT_ID="...apps.googleusercontent.com"
+GOOGLE_CLIENT_SECRET="GOCSPX-..."
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run dev                # http://localhost:3000
+npm run worker             # 另开一个终端：定时任务 + SEO 诊断
+```
 
-## Learn More
+流程：`/login` → Continue with Google → `/connections` 勾一个 GSC 资源 → 自动回补 90 天 → 曲线页。
 
-To learn more about Next.js, take a look at the following resources:
+**worker 是独立进程**，负责定时任务和 SEO 诊断。不开的话曲线页照样能用（手动 Sync 是内联跑的），但数据不会自动更新，「Run audit」会一直排队——按钮会在 45 秒后告诉你 worker 没开。
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+AI 诊断要配网关，见 [`docs/ai-gateway-setup.md`](./docs/ai-gateway-setup.md)。**不配也能跑**，规则引擎的发现一条不少，只是没有优先级排序和改写文案。
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 国内网络：必须让 Node 走代理
 
-## Deploy on Vercel
+浏览器能打开 Google **不代表服务端能**。授权页是浏览器访问的（走系统代理），但拿 code 换 token、以及后续所有 GSC API 调用都是 Node 发的，而 **Node 的 `fetch` 默认不读 `HTTP_PROXY`**，会直连超时。
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+`npm run dev` / `npm run start` 已经带上 `NODE_USE_ENV_PROXY=1`（需要 Node 24+），它让 Node 内建 fetch 使用 `HTTPS_PROXY` / `HTTP_PROXY`。所以：
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- 在**设置了 `HTTPS_PROXY` 的 shell 里**启动，别用 IDE 的一键运行按钮，除非它继承了这些变量
+- 这个开关必须在进程启动前生效，**写进 `.env` 是没用的**
+- 改完 `package.json` 要**重启 dev server**，热重载不会重新读脚本
+
+自检：
+
+```bash
+curl http://localhost:3000/api/diagnostics/google
+```
+
+期望 `"reachable": true` 且 `"nodeUsesEnvProxy": true`。如果 `reachable:false` 而 `nodeUsesEnvProxy:false`，就是上面这个问题。
+
+部署到墙外 VPS 时不设 `HTTPS_PROXY` 即可，开关自动变成空操作。
+
+### 不接 Google 先看界面
+
+```bash
+npm run db:seed:demo       # 造 180 天合成数据，站点名 "Demo (synthetic data)"
+```
+
+数据全部是脚本生成的，不是真实 GSC 数据。清掉：`npm run db:reset`。
+
+## 常用命令
+
+| 命令 | 作用 |
+|---|---|
+| `npm run dev` / `build` / `start` | Next.js |
+| `npm run worker` | 常驻 worker：定时任务 + 队列消费 |
+| `npm run ai:check` | 验证 AI 网关连通、模型、单次成本 |
+| `npm run typecheck` / `lint` | TS + ESLint |
+| `npm run db:migrate` | 建/改表 |
+| `npm run db:studio` | Prisma Studio 看数据 |
+| `npm run db:seed:demo` | 合成演示数据 |
+| `npm run db:reset` | 清库重建 |
+
+## 与 spec 的差异
+
+写在代码里的偏离，都是有理由的，不是漏做：
+
+1. **SQLite 而非 Postgres**。本机没有 Docker/Postgres。schema 结构与 spec 一致，切换只需改 `prisma/schema.prisma` 的 `provider`，并把 `scopes`（现为空格分隔字符串）还原成 `String[]`、`meta`/`config`/`logs` 还原成 `Json`、`provider` 还原成 enum。`src/lib/db-url.ts` 对非 `file:` URL 是空操作。
+2. **登录 = Google 授权**，没有独立的邮箱密码登录。单人单 Workspace 场景下多一套密码是纯负担；`User.passwordHash` 留到多租户时再加。
+3. **队列用数据库，不是 BullMQ**。BullMQ 要 Redis，这台机器没有。`JobRun` 表加了 `status/runAfter/dedupeKey/attempts`，worker 轮询领取，用条件 `updateMany` 做锁、`dedupeKey` 唯一索引做定时幂等、`claimedAt` 超时回收僵尸任务。语义和 spec §8 一致，迁 VPS 时换 BullMQ 只需重写 `src/lib/jobs/queue.ts` —— 调用方只见 `enqueue`，worker 只见 `claimNext`。
+   手动 Sync 仍然内联跑（十几秒，用户点了就想看到结果）；SEO 诊断走队列（要几分钟）。
+4. **抓取很慢，这是故意的**。50 个页面并发 2、每次间隔 300ms、429/503 按 `Retry-After` 退避重试。在 geeujade.com（Shopify）上一次诊断约 6.5 分钟。第一版并发 4 无延迟，结果被站点限流，产出 14 条「页面无法访问」的**假阳性**——报告说页面坏了，其实是我把它请求崩了。现在 429 收敛成一条 low 级别的「本次抓取被限流，这些页没审到」，和真正的 404 分开。
+5. **OAuth state 存签名 cookie 而非 Redis**。10 分钟 TTL、httpOnly、一次性消费，语义与 spec 一致，少一个依赖。
+6. **不做双 Y 轴曲线**。spec §5.1 画的是「左点击右曝光」，但两条不同量纲的线共用一张图时，交叉点看起来有意义、实际是缩放造成的假象。改成每个指标一张小图（small multiples），共享 X 轴，虚线叠加上一周期。指标 chip 可切换 CTR / 平均排名。
+7. **聚合在 JS 里做，不是 SQL**。每个维度每个同步窗口上限 25k 行，读取量很小；这样查询层不依赖 SQLite 的日期存储格式，迁 Postgres 时不用重写。
+8. **AI 走官方 SDK，不走 OpenAI 兼容 shim**。spec §6.1 写的是 `/v1` 中转，这里用 `@anthropic-ai/sdk` + `baseURL` 指向中转的 Anthropic 端点（New API / LiteLLM 都提供）。这样结构化输出、adaptive thinking、refusal 处理都还在；用 OpenAI shim 会全丢。**代价是你的中转必须有 `/v1/messages`，不能只有 `/v1/chat/completions`** —— 只有后者的话告诉我，我改用 tool_use 兜底。
+9. **模型默认 `claude-opus-5`**，不是 spec 写的 `claude-sonnet-4-6`（那个 ID 还有效，只是不是当前最强）。全部走环境变量，改一行就能降级；`docs/ai-gateway-setup.md` 里有成本对照。
+
+## 下一步（按 spec 的交付计划）
+
+- **P1 剩余**：Cloudflare scoped token（zone 状态 / DNS / 缓存清除）、GitHub App（读代码进诊断证据包、修复以 PR 交付）
+- **P2**：brandVoice 配置、选题 → 大纲 → 正文 → 配图全链路
+- **P3**：Shopify OAuth、blog 发布、页面 SEO 巡检
+- 诊断的 `autoFixable` 发现目前只展示不执行——落点是 Shopify `pageUpdate` 和 GitHub PR，等那两个连接接上才能一键采纳

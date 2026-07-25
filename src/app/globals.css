@@ -1,26 +1,64 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --bg: #f7f8fa;
+  --panel: #ffffff;
+  --panel-alt: #f1f3f7;
+  --line: #e3e6ec;
+  --fg: #10131a;
+  --muted: #6b7280;
+  --accent: #4f46e5;
+  --accent-soft: #eef2ff;
+  --pos: #12805c;
+  --neg: #c2410c;
+  /* Categorical slots 1 & 2, validated against this surface (see dataviz). */
+  --clicks: #2a78d6;
+  --impressions: #eb6834;
+  --grid: #e6e8ee;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --bg: #0b0d12;
+    --panel: #12151c;
+    --panel-alt: #171b24;
+    --line: #242a35;
+    --fg: #e8eaef;
+    --muted: #8b94a5;
+    --accent: #818cf8;
+    --accent-soft: #1b1f34;
+    --pos: #34d399;
+    --neg: #fb923c;
+    /* Same two hues, re-stepped for the dark surface. */
+    --clicks: #3987e5;
+    --impressions: #d95926;
+    --grid: #222833;
   }
 }
 
+@theme inline {
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-panel-alt: var(--panel-alt);
+  --color-line: var(--line);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-pos: var(--pos);
+  --color-neg: var(--neg);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tabular figures stop metric columns jittering as values change. */
+.tnum {
+  font-variant-numeric: tabular-nums;
 }
