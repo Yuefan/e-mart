@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { isGoogleConfigured } from "@/lib/env";
 import { googleRedirectUri } from "@/lib/integrations/google/oauth";
-import { Card, buttonClass } from "@/components/ui";
+import { GoogleConnectButton } from "@/components/google-connect-button";
+import { Card } from "@/components/ui";
 
 const ERROR_COPY: Record<string, string> = {
   google_not_configured:
@@ -52,9 +53,11 @@ export default async function LoginPage({
 
         {configured ? (
           <>
-            <a href="/api/connections/google/start" className={buttonClass("primary", "w-full")}>
-              Continue with Google
-            </a>
+            <GoogleConnectButton
+              returnTo="/connections"
+              label="Continue with Google"
+              className="w-full"
+            />
             <p className="mt-4 text-xs leading-relaxed text-muted">
               Requests read-only Search Console access plus your name and email. Tokens are
               encrypted with AES-256-GCM before they touch the database and never reach the

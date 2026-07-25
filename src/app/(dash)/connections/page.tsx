@@ -4,8 +4,9 @@ import {
   getGoogleProperties,
 } from "@/lib/integrations/google/properties";
 import { prisma } from "@/lib/prisma";
+import { GoogleConnectButton } from "@/components/google-connect-button";
 import { PropertyPicker } from "@/components/property-picker";
-import { Badge, Card, CardHeader, buttonClass } from "@/components/ui";
+import { Badge, Card, CardHeader } from "@/components/ui";
 
 const PLANNED_PROVIDERS = [
   { name: "Cloudflare", note: "Scoped API token — zone status, DNS, cache purge" },
@@ -63,12 +64,11 @@ export default async function ConnectionsPage() {
                 : "Authorize to list your verified properties"
             }
             action={
-              <a
-                href="/api/connections/google/start?returnTo=/connections"
-                className={buttonClass(google ? "secondary" : "primary")}
-              >
-                {google ? "Re-authorize" : "Connect"}
-              </a>
+              <GoogleConnectButton
+                returnTo="/connections"
+                variant={google ? "secondary" : "primary"}
+                label={google ? "Re-authorize" : "Connect"}
+              />
             }
           />
           {google ? (

@@ -41,6 +41,29 @@ export async function getSessionUserId(): Promise<string | null> {
   }
 }
 
+export type SessionInfo = {
+  userId: string;
+  issuedAt: Date | null;
+  expiresAt: Date | null;
+};
+
+/** Session timing for the account page — when you signed in and when it lapses. */
+export async function getSessionInfo(): Promise<SessionInfo | null> {
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  if (!token) return null;
+  try {
+    const { payload } = await jwtVerify(token, secret());
+    if (typeof payload.sub !== "string") return null;
+    return {
+      userId: payload.sub,
+      issuedAt: payload.iat ? new Date(payload.iat * 1000) : null,
+      expiresAt: payload.exp ? new Date(payload.exp * 1000) : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function destroySession(): Promise<void> {
   (await cookies()).delete(SESSION_COOKIE);
 }

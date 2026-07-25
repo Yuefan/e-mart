@@ -89,18 +89,23 @@ export function SidebarNav({ sites }: { sites: Site[] }) {
         Workspace
       </p>
       <ul className="mt-2 space-y-0.5">
-        <li>
-          <Link
-            href="/connections"
-            aria-current={pathname === "/connections" ? "page" : undefined}
-            className={cn(
-              "block rounded-lg px-2 py-1.5 text-sm transition-colors",
-              pathname === "/connections" ? "bg-panel-alt font-medium" : "hover:bg-panel-alt",
-            )}
-          >
-            Connections
-          </Link>
-        </li>
+        {[
+          { href: "/account", label: "Account" },
+          { href: "/connections", label: "Connections" },
+        ].map((item) => (
+          <li key={item.href}>
+            <Link
+              href={item.href}
+              aria-current={pathname === item.href ? "page" : undefined}
+              className={cn(
+                "block rounded-lg px-2 py-1.5 text-sm transition-colors",
+                pathname === item.href ? "bg-panel-alt font-medium" : "hover:bg-panel-alt",
+              )}
+            >
+              {item.label}
+            </Link>
+          </li>
+        ))}
       </ul>
     </nav>
   );

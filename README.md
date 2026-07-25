@@ -10,6 +10,7 @@
 |---|---|
 | Google OAuth 2.0 + PKCE 授权（登录即连接） | `src/app/api/connections/google/{start,callback}` |
 | 凭证 AES-256-GCM 加密落库、access token 到期前 5 分钟自动刷新 | `src/lib/crypto.ts`、`src/lib/integrations/google/oauth.ts` |
+| 账号总览：登录身份、会话有效期、各第三方账号的授权范围/令牌状态/绑定站点，可测试、重新授权、断开 | `/account` |
 | 列出账号下所有 GSC 资源，勾选绑定为 Site | `/connections` |
 | GSC 数据同步（5 个维度、分页、429/5xx 指数退避、窗口幂等重写） | `src/lib/jobs/gsc-sync.ts` |
 | KPI 卡 + 时序曲线 + Top Queries/Pages/国家/设备 | `/sites/[siteId]/overview` |
