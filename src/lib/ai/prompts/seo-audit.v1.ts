@@ -1,8 +1,10 @@
 import type { Metrics } from "@/lib/gsc-queries";
+import type { Playbook } from "@/lib/seo/playbooks";
+import { renderPlaybooks } from "@/lib/seo/playbooks";
 import type { RuleFinding } from "@/lib/seo/rules";
 import type { PageSnapshot, SiteFiles } from "@/lib/seo/crawl";
 
-export const PROMPT_VERSION = "seo_audit.v1";
+export const PROMPT_VERSION = "seo_audit.v2-playbooks";
 
 /**
  * Evidence pack (spec §6.3). Raw API responses never reach the model — each
@@ -23,6 +25,8 @@ export type SeoEvidence = {
   pages: PageSnapshot[];
   ruleFindings: RuleFinding[];
   brandVoice: string | null;
+  /** Methodology selected for this site — see lib/seo/playbooks.ts. */
+  playbooks: Playbook[];
 };
 
 export const SYSTEM = `You are an SEO analyst reviewing a site you have never seen before.
@@ -52,7 +56,14 @@ page that is not in the input.
 
 Score the site 0-100 on what the evidence shows, weighted by how much real
 traffic the problems touch. A site with clean fundamentals and no traffic is not
-a 90.`;
+a 90.
+
+The request carries a METHODOLOGY section: the thresholds, status tables and
+scoring weights this team audits by. Apply it, and prefer it over your own
+recollection where the two disagree — parts of it record changes made after your
+training data was collected, and being confidently out of date there produces
+advice that actively harms the site. It describes how to judge, never what this
+site contains: nothing in it is evidence, and no finding may cite it as one.`;
 
 function pct(value: number): string {
   return `${(value * 100).toFixed(2)}%`;
@@ -98,6 +109,13 @@ export function buildUserPrompt(evidence: SeoEvidence): string {
   }
 
   const sections: string[] = [];
+
+  // First, so it frames how everything after it is read.
+  if (evidence.playbooks.length > 0) {
+    sections.push(
+      `# METHODOLOGY (how to judge; not evidence)\n\n${renderPlaybooks(evidence.playbooks)}`,
+    );
+  }
 
   sections.push(
     `## Site

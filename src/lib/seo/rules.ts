@@ -1,4 +1,5 @@
 import type { PageSnapshot, SiteFiles } from "./crawl";
+import { blockedAiCrawlers, withdrawnSchemaTypes } from "./ai-crawlers";
 
 /**
  * Deterministic checks (spec §5.2). Anything code can decide — a title over 60
@@ -135,6 +136,59 @@ export function runRules(input: RuleInput): RuleFinding[] {
   }
 
   const live = snapshots.filter((page) => page.ok);
+
+  // ---- AI search access (seo-geo / seo-technical) ----
+  //
+  // Separate from the robots.txt reachability check above: that one asks
+  // whether the file exists, this one asks who it shuts out. Blocking an
+  // answering crawler removes the site from AI answers entirely, which is a
+  // ranking-scale consequence that nothing in Search Console reports.
+  const { blocked, viaWildcard } = blockedAiCrawlers(siteFiles.robotsTxt);
+  if (blocked.length > 0) {
+    findings.push({
+      code: "ai_crawlers_blocked",
+      severity: viaWildcard ? "medium" : "high",
+      category: "technical",
+      url: null,
+      title: `robots.txt blocks ${blocked.length} AI search crawler(s)`,
+      detail:
+        `${blocked.join(", ")} cannot fetch this site, so it cannot be cited in ` +
+        `ChatGPT, Claude or Perplexity answers.` +
+        (viaWildcard
+          ? " They are caught by a blanket `User-agent: *` rule rather than named directly, so this may not have been deliberate."
+          : " Each is named explicitly in robots.txt.") +
+        " Training-only crawlers such as Google-Extended, Bytespider and CCBot are not counted here — blocking those costs nothing in AI search.",
+      suggestion:
+        "If AI visibility is wanted, add an explicit allow group per crawler. A named group overrides the wildcard: `User-agent: GPTBot` followed by `Disallow:` (empty) grants access without loosening anything else.",
+      evidence: { blocked, viaWildcard },
+      autoFixable: false,
+    });
+  }
+
+  // ---- structured data that no longer earns rich results (seo-schema) ----
+  const allJsonLdTypes = snapshots.flatMap((page) => page.jsonLdTypes);
+  for (const { type, note } of withdrawnSchemaTypes(allJsonLdTypes)) {
+    const affected = snapshots
+      .filter((page) => page.jsonLdTypes.some((t) => t.toLowerCase() === type.toLowerCase()))
+      .map((page) => page.url);
+
+    findings.push({
+      code: `schema_withdrawn_${type.toLowerCase()}`,
+      severity: "low",
+      category: "technical",
+      url: affected[0] ?? null,
+      title: `${type} markup no longer produces rich results`,
+      detail:
+        `${affected.length} page(s) carry ${type} schema — ${note}. The markup is not ` +
+        "harmful and still helps AI systems resolve entities, so this is worth knowing " +
+        "rather than fixing.",
+      suggestion:
+        `Keep it if it is already there. Do not invest further in ${type} for Google ` +
+        "visibility, and do not roll it out to more pages on that basis.",
+      evidence: { type, note, urls: affected.slice(0, 10) },
+      autoFixable: false,
+    });
+  }
 
   // ---- per page ----
 

@@ -18,6 +18,7 @@ import { formatBrandVoiceForPrompt, parseBrandVoice } from "@/lib/brand-voice";
 import { getBreakdown, getInsights, getTotals, previousPeriod } from "@/lib/gsc-queries";
 import { prisma } from "@/lib/prisma";
 import { crawlPages, fetchSiteFiles } from "@/lib/seo/crawl";
+import { selectPlaybooks } from "@/lib/seo/playbooks";
 import { type PageMetrics, runRules, scoreFromFindings } from "@/lib/seo/rules";
 import { addDays, formatDay } from "@/lib/utils";
 import { latestAvailableDay } from "@/lib/range";
@@ -100,6 +101,10 @@ export async function runSeoAudit(
     const auditedPages = pages.filter((page) => page.ok).length;
     const ruleScore = scoreFromFindings(ruleFindings, Math.max(1, auditedPages));
 
+    // Chosen from what the crawl actually found, so a blog is not sent the
+    // e-commerce playbook. Recorded on the audit below for traceability.
+    const playbooks = selectPlaybooks(pages);
+
     const evidence: SeoEvidence = {
       site: { name: site.name, domain: site.domain, property },
       window: { from: formatDay(from), to: formatDay(to) },
@@ -117,6 +122,7 @@ export async function runSeoAudit(
       pages,
       ruleFindings,
       brandVoice: formatBrandVoiceForPrompt(parseBrandVoice(site.brandVoice)),
+      playbooks,
     };
 
     let ai: SeoAuditOutput | null = null;
@@ -212,6 +218,7 @@ export async function runSeoAudit(
           pagesCrawled: pages.length,
           ruleFindings: ruleFindings.length,
           priorityActions: ai?.priorityActions ?? [],
+          playbooks: playbooks.map((p) => p.id),
         },
         finishedAt: new Date(),
       },
