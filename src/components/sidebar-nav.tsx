@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { SiteIcon } from "./site-icon";
 
 type Site = { id: string; name: string; domain: string };
 
@@ -35,12 +36,17 @@ export function SidebarNav({ sites }: { sites: Site[] }) {
                   href={`/sites/${site.id}/overview`}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "block truncate rounded-lg px-2 py-1.5 text-sm transition-colors",
+                    "flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm transition-colors",
                     active ? "bg-accent-soft font-medium text-accent" : "hover:bg-panel-alt",
                   )}
                 >
-                  {site.name}
-                  <span className="block truncate text-xs text-muted">{site.domain}</span>
+                  <SiteIcon domain={site.domain} name={site.name} active={active} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate">{site.name}</span>
+                    <span className="block truncate text-xs font-normal text-muted">
+                      {site.domain}
+                    </span>
+                  </span>
                 </Link>
               </li>
             );
