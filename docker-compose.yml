@@ -22,6 +22,10 @@ x-app-env: &app-env
   GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
   AI_BASE_URL: ${AI_BASE_URL:-}
   AI_API_KEY: ${AI_API_KEY:-}
+  # native | tool. Must be "tool" for any non-Anthropic endpoint — see
+  # docs/ai-gateway-setup.md. Missing it here would leave the container on the
+  # default while .env says otherwise, and every AI call would fail validation.
+  AI_STRUCTURED_MODE: ${AI_STRUCTURED_MODE:-native}
   AI_MODEL_ANALYSIS: ${AI_MODEL_ANALYSIS:-claude-opus-5}
   AI_MODEL_FAST: ${AI_MODEL_FAST:-claude-haiku-4-5}
   AI_EFFORT: ${AI_EFFORT:-medium}
