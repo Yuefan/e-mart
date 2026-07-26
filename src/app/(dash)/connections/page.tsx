@@ -1,4 +1,5 @@
 import { requireUser } from "@/lib/auth";
+import { getT } from "@/lib/i18n";
 import {
   type GooglePropertyList,
   getGoogleProperties,
@@ -8,14 +9,16 @@ import { GoogleConnectButton } from "@/components/google-connect-button";
 import { PropertyPicker } from "@/components/property-picker";
 import { Badge, Card, CardHeader } from "@/components/ui";
 
+/** Product names are trademarks; only the note is translated. */
 const PLANNED_PROVIDERS = [
-  { name: "Cloudflare", note: "Scoped API token — zone status, DNS, cache purge" },
-  { name: "GitHub", note: "GitHub App — read code for audits, ship fixes as PRs" },
-  { name: "Shopify", note: "OAuth — publish articles, maintain page SEO" },
-];
+  { name: "Cloudflare", note: "cloudflareNote" },
+  { name: "GitHub", note: "githubNote" },
+  { name: "Shopify", note: "shopifyNote" },
+] as const;
 
 export default async function ConnectionsPage() {
   const user = await requireUser();
+  const { t } = await getT();
 
   const googleConnections = await prisma.connection.findMany({
     where: { userId: user.id, provider: "GOOGLE" },
@@ -32,17 +35,15 @@ export default async function ConnectionsPage() {
     try {
       propertyList = await getGoogleProperties(user.id);
     } catch (error) {
-      propertyError = error instanceof Error ? error.message : "Failed to load properties";
+      propertyError = error instanceof Error ? error.message : t.connections.loadFailed;
     }
   }
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-8">
       <header className="mb-6">
-        <h1 className="text-lg font-semibold">Connections</h1>
-        <p className="mt-1 text-sm text-muted">
-          Authorizations are stored per account; each site binds to a specific resource.
-        </p>
+        <h1 className="text-lg font-semibold">{t.connections.title}</h1>
+        <p className="mt-1 text-sm text-muted">{t.connections.intro}</p>
       </header>
 
       <div className="space-y-4">
@@ -50,26 +51,27 @@ export default async function ConnectionsPage() {
           <CardHeader
             title={
               <span className="flex items-center gap-2">
-                Google Search Console
+                {t.connections.googleTitle}
                 {google ? (
                   <Badge tone={google.status === "active" ? "positive" : "negative"}>
-                    {google.status}
+                    {t.account.statuses[google.status as keyof typeof t.account.statuses] ??
+                      google.status}
                   </Badge>
                 ) : (
-                  <Badge>not connected</Badge>
+                  <Badge>{t.common.notConnected}</Badge>
                 )}
               </span>
             }
             hint={
               google
-                ? `${googleConnections.map((c) => c.accountLabel).join(", ")} · read-only`
-                : "Authorize to list your verified properties"
+                ? `${googleConnections.map((c) => c.accountLabel).join(", ")} · ${t.connections.readOnly}`
+                : t.connections.authorizePrompt
             }
             action={
               <GoogleConnectButton
                 returnTo="/connections"
                 variant={google ? "secondary" : "primary"}
-                label={google ? "Add account" : "Connect"}
+                label={google ? t.connections.addAccount : t.connections.connect}
               />
             }
           />
@@ -93,17 +95,19 @@ export default async function ConnectionsPage() {
 
         <Card>
           <CardHeader
-            title="Not connected yet"
-            hint="Later phases of the spec — the data model already has room for them"
+            title={t.connections.notConnectedYet}
+            hint={t.connections.notConnectedHint}
           />
           <ul className="divide-y divide-line/60">
             {PLANNED_PROVIDERS.map((provider) => (
               <li key={provider.name} className="flex items-center gap-4 px-5 py-3">
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-muted">{provider.name}</p>
-                  <p className="truncate text-xs text-muted">{provider.note}</p>
+                  <p className="truncate text-xs text-muted">
+                    {t.connections[provider.note]}
+                  </p>
                 </div>
-                <Badge>planned</Badge>
+                <Badge>{t.common.planned}</Badge>
               </li>
             ))}
           </ul>

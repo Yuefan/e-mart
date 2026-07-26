@@ -3,30 +3,37 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useT } from "./i18n-provider";
 import { SiteIcon } from "./site-icon";
 
 type Site = { id: string; name: string; domain: string };
 
-const MODULES = [
-  { label: "Search performance", segment: "overview" },
-  { label: "SEO audit", segment: "seo" },
-  { label: "Content", segment: "content" },
-  { label: "Settings", segment: "settings" },
-];
+/** Segments are routes, so they stay literal; only the label is translated. */
+const MODULE_SEGMENTS = ["overview", "seo", "content", "settings"] as const;
 
 /** Modules from the spec that aren't built yet. */
-const PLANNED_MODULES = [{ label: "Deploy", segment: "deploy" }];
+const PLANNED_SEGMENTS = ["deploy"] as const;
 
 export function SidebarNav({ sites }: { sites: Site[] }) {
   const pathname = usePathname();
+  const t = useT();
+  const moduleLabels: Record<(typeof MODULE_SEGMENTS)[number], string> = {
+    overview: t.nav.searchPerformance,
+    seo: t.nav.seoAudit,
+    content: t.nav.content,
+    settings: t.nav.settings,
+  };
+  const plannedLabels: Record<(typeof PLANNED_SEGMENTS)[number], string> = {
+    deploy: t.nav.deploy,
+  };
   const activeSiteId = pathname.match(/^\/sites\/([^/]+)/)?.[1];
 
   return (
     <nav className="flex-1 overflow-y-auto px-3 py-4">
-      <p className="px-2 text-xs font-medium tracking-wide text-muted uppercase">Sites</p>
+      <p className="px-2 text-xs font-medium tracking-wide text-muted uppercase">{t.nav.sites}</p>
       <ul className="mt-2 space-y-0.5">
         {sites.length === 0 ? (
-          <li className="px-2 py-1.5 text-xs text-muted">None yet</li>
+          <li className="px-2 py-1.5 text-xs text-muted">{t.common.none}</li>
         ) : (
           sites.map((site) => {
             const active = site.id === activeSiteId;
@@ -60,31 +67,31 @@ export function SidebarNav({ sites }: { sites: Site[] }) {
             Modules
           </p>
           <ul className="mt-2 space-y-0.5">
-            {MODULES.map((module) => {
-              const active = pathname.endsWith(`/${module.segment}`);
+            {MODULE_SEGMENTS.map((segment) => {
+              const active = pathname.endsWith(`/${segment}`);
               return (
-                <li key={module.segment}>
+                <li key={segment}>
                   <Link
-                    href={`/sites/${activeSiteId}/${module.segment}`}
+                    href={`/sites/${activeSiteId}/${segment}`}
                     aria-current={active ? "page" : undefined}
                     className={cn(
                       "block rounded-lg px-2 py-1.5 text-sm transition-colors",
                       active ? "bg-panel-alt font-medium" : "hover:bg-panel-alt",
                     )}
                   >
-                    {module.label}
+                    {moduleLabels[segment]}
                   </Link>
                 </li>
               );
             })}
-            {PLANNED_MODULES.map((module) => (
+            {PLANNED_SEGMENTS.map((segment) => (
               <li
-                key={module.segment}
-                title="Not built yet — see the spec"
+                key={segment}
+                title={t.nav.plannedHint}
                 className="flex items-center justify-between rounded-lg px-2 py-1.5 text-sm text-muted/60"
               >
-                {module.label}
-                <span className="text-[10px] tracking-wide uppercase">soon</span>
+                {plannedLabels[segment]}
+                <span className="text-[10px] tracking-wide uppercase">{t.common.soon}</span>
               </li>
             ))}
           </ul>
@@ -92,12 +99,12 @@ export function SidebarNav({ sites }: { sites: Site[] }) {
       ) : null}
 
       <p className="mt-6 px-2 text-xs font-medium tracking-wide text-muted uppercase">
-        Workspace
+        {t.nav.workspace}
       </p>
       <ul className="mt-2 space-y-0.5">
         {[
-          { href: "/account", label: "Account" },
-          { href: "/connections", label: "Connections" },
+          { href: "/account", label: t.nav.account },
+          { href: "/connections", label: t.nav.connections },
         ].map((item) => (
           <li key={item.href}>
             <Link

@@ -1,41 +1,33 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { appUrl, isGoogleConfigured } from "@/lib/env";
+import { getT } from "@/lib/i18n";
+import { fmt } from "@/lib/i18n/format";
 import { prisma } from "@/lib/prisma";
 import { getSessionInfo } from "@/lib/session";
 import { ConnectionCard, type ConnectionView } from "@/components/connection-card";
 import { GoogleConnectButton } from "@/components/google-connect-button";
 import { Badge, Card, CardHeader, EmptyState, buttonClass } from "@/components/ui";
 
-/** Providers the spec plans for, shown so the gaps are visible rather than absent. */
+/**
+ * Providers the spec plans for, shown so the gaps are visible rather than
+ * absent. Product names are trademarks and stay untranslated; only the auth
+ * mechanism and the description come from the dictionary.
+ */
 const PLANNED = [
-  {
-    provider: "CLOUDFLARE",
-    label: "Cloudflare",
-    auth: "Scoped API token",
-    unlocks: "Zone status, DNS overview, cache purge after publishing",
-  },
-  {
-    provider: "GITHUB",
-    label: "GitHub",
-    auth: "GitHub App",
-    unlocks: "Reads config into audits, delivers fixes as pull requests",
-  },
-  {
-    provider: "SHOPIFY",
-    label: "Shopify",
-    auth: "OAuth (custom app)",
-    unlocks: "Publishes drafts, maintains product and page SEO",
-  },
-];
+  { key: "cloudflare", label: "Cloudflare" },
+  { key: "github", label: "GitHub" },
+  { key: "shopify", label: "Shopify" },
+] as const;
 
-function formatDateTime(value: Date | null): string {
-  if (!value) return "unknown";
+function formatDateTime(value: Date | null, unknown: string): string {
+  if (!value) return unknown;
   return `${value.toISOString().replace("T", " ").slice(0, 16)} UTC`;
 }
 
 export default async function AccountPage() {
   const user = await requireUser();
+  const { t } = await getT();
   const [session, connections, siteCount] = await Promise.all([
     getSessionInfo(),
     prisma.connection.findMany({
@@ -71,45 +63,38 @@ export default async function AccountPage() {
   return (
     <main className="mx-auto max-w-3xl px-6 py-8">
       <header className="mb-6">
-        <h1 className="text-lg font-semibold">Account</h1>
-        <p className="mt-0.5 text-sm text-muted">
-          Who you are signed in as, and every third-party account this dashboard holds a
-          credential for.
-        </p>
+        <h1 className="text-lg font-semibold">{t.account.title}</h1>
+        <p className="mt-0.5 text-sm text-muted">{t.account.intro}</p>
       </header>
 
       <div className="space-y-4">
         <Card>
-          <CardHeader title="Signed in" />
+          <CardHeader title={t.account.signedIn} />
           <div className="px-5 py-4">
             <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
               <div>
-                <dt className="text-xs text-muted">Name</dt>
+                <dt className="text-xs text-muted">{t.account.name}</dt>
                 <dd className="mt-0.5">{user.name ?? <span className="text-muted">—</span>}</dd>
               </div>
               <div>
-                <dt className="text-xs text-muted">Email</dt>
+                <dt className="text-xs text-muted">{t.account.email}</dt>
                 <dd className="mt-0.5 break-all">{user.email}</dd>
               </div>
               <div>
-                <dt className="text-xs text-muted">Signed in at</dt>
-                <dd className="tnum mt-0.5">{formatDateTime(session?.issuedAt ?? null)}</dd>
+                <dt className="text-xs text-muted">{t.account.signedInAt}</dt>
+                <dd className="tnum mt-0.5">{formatDateTime(session?.issuedAt ?? null, t.account.unknownTime)}</dd>
               </div>
               <div>
-                <dt className="text-xs text-muted">Session expires</dt>
-                <dd className="tnum mt-0.5">{formatDateTime(session?.expiresAt ?? null)}</dd>
+                <dt className="text-xs text-muted">{t.account.sessionExpires}</dt>
+                <dd className="tnum mt-0.5">{formatDateTime(session?.expiresAt ?? null, t.account.unknownTime)}</dd>
               </div>
             </dl>
 
-            <p className="mt-4 text-xs text-muted">
-              Signing in with Google is what creates this account — there is no separate
-              password. The session is an httpOnly cookie; signing out clears it without
-              touching the connections below.
-            </p>
+            <p className="mt-4 text-xs text-muted">{t.account.sessionNote}</p>
 
             <form action="/api/auth/logout" method="post" className="mt-3">
               <button type="submit" className={buttonClass("secondary")}>
-                Sign out
+                {t.common.signOut}
               </button>
             </form>
           </div>
@@ -119,19 +104,25 @@ export default async function AccountPage() {
           <CardHeader
             title={
               <span className="flex items-center gap-2">
-                Connected accounts
+                {t.account.connectedAccounts}
                 {needsAttention > 0 ? (
-                  <Badge tone="negative">{needsAttention} need attention</Badge>
+                  <Badge tone="negative">
+                    {fmt(t.account.needAttention, { n: needsAttention })}
+                  </Badge>
                 ) : null}
               </span>
             }
-            hint={`${views.length} connected · ${siteCount} site${siteCount === 1 ? "" : "s"} bound`}
+            hint={fmt(
+              t.account.connectedSummary,
+              { accounts: views.length, sites: siteCount },
+              siteCount,
+            )}
             action={
               isGoogleConfigured() ? (
                 <GoogleConnectButton
                   returnTo="/account"
                   variant={google.length === 0 ? "primary" : "secondary"}
-                  label={google.length === 0 ? "Connect Google" : "Add another Google account"}
+                  label={google.length === 0 ? t.account.connectGoogle : t.account.addAnotherGoogle}
                 />
               ) : null
             }
@@ -139,11 +130,9 @@ export default async function AccountPage() {
 
           {views.length === 0 ? (
             <EmptyState
-              title="No accounts connected"
+              title={t.account.noAccounts}
               description={
-                isGoogleConfigured()
-                  ? "Connect the Google account that owns your Search Console properties to start."
-                  : "Google OAuth is not configured yet — see docs/google-oauth-setup.md."
+                isGoogleConfigured() ? t.account.noAccountsHint : t.account.noAccountsUnconfigured
               }
             />
           ) : (
@@ -157,67 +146,57 @@ export default async function AccountPage() {
 
         <Card>
           <CardHeader
-            title="Not connected"
-            hint="Later phases of the spec. The data model already has room for them."
+            title={t.account.notConnectedTitle}
+            hint={t.account.notConnectedHint}
           />
           <ul className="divide-y divide-line/60">
             {PLANNED.map((provider) => (
-              <li key={provider.provider} className="px-5 py-3">
+              <li key={provider.key} className="px-5 py-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="text-sm font-medium text-muted">{provider.label}</p>
-                  <Badge>{provider.auth}</Badge>
+                  <Badge>{t.account.planned[provider.key].auth}</Badge>
                 </div>
-                <p className="mt-0.5 text-xs text-muted">{provider.unlocks}</p>
+                <p className="mt-0.5 text-xs text-muted">
+                  {t.account.planned[provider.key].unlocks}
+                </p>
               </li>
             ))}
           </ul>
         </Card>
 
         <Card>
-          <CardHeader title="Where credentials live" />
+          <CardHeader title={t.account.credentialsTitle} />
           <div className="px-5 py-4 text-sm text-muted">
             <ul className="list-disc space-y-1.5 pl-5">
+              <li>{t.account.credential1}</li>
+              <li>{t.account.credential2}</li>
+              <li>{t.account.credential3}</li>
               <li>
-                Access and refresh tokens are encrypted with AES-256-GCM before they reach the
-                database, each with its own IV. The key is only in{" "}
-                <code className="font-mono">.env</code>.
-              </li>
-              <li>
-                No third-party token is ever sent to the browser — every provider call goes
-                through this server.
-              </li>
-              <li>
-                Google access is read-only (
-                <code className="font-mono">webmasters.readonly</code>), so nothing here can
-                change your Search Console settings.
-              </li>
-              <li>
-                Disconnecting revokes the grant with the provider as well as deleting it here.
-                You can also review it at{" "}
+                {t.account.credential4}{" "}
                 <a
                   href="https://myaccount.google.com/permissions"
                   target="_blank"
                   rel="noreferrer"
                   className="text-accent hover:underline"
                 >
-                  Google account permissions
+                  {t.account.googlePermissions}
                 </a>
                 .
               </li>
             </ul>
             <p className="mt-3 text-xs">
-              Redirect URI in use: <code className="font-mono">{appUrl()}</code>
+              {t.account.redirectUriInUse} <code className="font-mono">{appUrl()}</code>
             </p>
           </div>
         </Card>
       </div>
 
       <p className="mt-6 text-xs text-muted">
-        Binding properties to sites happens on the{" "}
+        {t.account.bindingHint}{" "}
         <Link href="/connections" className="text-accent hover:underline">
-          Connections
+          {t.account.connectionsPage}
         </Link>{" "}
-        page.
+        {t.account.page}
       </p>
     </main>
   );

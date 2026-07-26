@@ -1,4 +1,6 @@
 import type { Metrics } from "@/lib/gsc-queries";
+import { getT } from "@/lib/i18n";
+import type { Dictionary } from "@/lib/i18n/dictionaries";
 import { cn, formatNumber, formatPercent, formatPosition } from "@/lib/utils";
 import { Card } from "./ui";
 
@@ -22,11 +24,11 @@ function signed(value: number, format: (v: number) => string): string {
   return `${sign}${format(Math.abs(value))}`;
 }
 
-function buildKpis(totals: Metrics, previous: Metrics | null): Kpi[] {
+function buildKpis(totals: Metrics, previous: Metrics | null, t: Dictionary): Kpi[] {
   const ratio = (current: number, prev: number): Pick<Kpi, "delta" | "direction"> => {
     if (!previous) return { delta: null, direction: null };
     const change = pctChange(current, prev);
-    if (change === null) return { delta: "new", direction: "up" };
+    if (change === null) return { delta: t.overview.newDelta, direction: "up" };
     return {
       delta: signed(change, (v) => `${(v * 100).toFixed(1)}%`),
       direction: change > 0 ? "up" : change < 0 ? "down" : "flat",
@@ -35,17 +37,17 @@ function buildKpis(totals: Metrics, previous: Metrics | null): Kpi[] {
 
   return [
     {
-      label: "Clicks",
+      label: t.overview.clicks,
       value: formatNumber(totals.clicks),
       ...ratio(totals.clicks, previous?.clicks ?? 0),
     },
     {
-      label: "Impressions",
+      label: t.overview.impressions,
       value: formatNumber(totals.impressions),
       ...ratio(totals.impressions, previous?.impressions ?? 0),
     },
     {
-      label: "CTR",
+      label: t.overview.ctr,
       value: formatPercent(totals.ctr),
       // Percentage points, not a relative change — a CTR going 1% -> 2% is
       // "+1.00pt", which is what people actually reason about.
@@ -61,7 +63,7 @@ function buildKpis(totals: Metrics, previous: Metrics | null): Kpi[] {
         : { delta: null, direction: null }),
     },
     {
-      label: "Avg. position",
+      label: t.overview.avgPosition,
       value: formatPosition(totals.position),
       lowerIsBetter: true,
       ...(previous
@@ -78,14 +80,15 @@ function buildKpis(totals: Metrics, previous: Metrics | null): Kpi[] {
   ];
 }
 
-export function KpiCards({
+export async function KpiCards({
   totals,
   previousTotals,
 }: {
   totals: Metrics;
   previousTotals: Metrics | null;
 }) {
-  const kpis = buildKpis(totals, previousTotals);
+  const { t } = await getT();
+  const kpis = buildKpis(totals, previousTotals, t);
 
   return (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -115,10 +118,10 @@ export function KpiCards({
                 <>
                   {kpi.direction === "up" ? "▲" : kpi.direction === "down" ? "▼" : "—"}{" "}
                   {kpi.delta}
-                  <span className="text-muted"> vs. previous</span>
+                  <span className="text-muted">{t.overview.vsPrevious}</span>
                 </>
               ) : (
-                "no comparison data"
+                t.overview.noComparison
               )}
             </p>
           </Card>

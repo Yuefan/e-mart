@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import { isAiConfigured, monthlyBudgetUsd, monthlySpendUsd } from "@/lib/ai/client";
 import { requireUser } from "@/lib/auth";
 import { isBrandVoiceUsable, parseBrandVoice } from "@/lib/brand-voice";
+import { getT } from "@/lib/i18n";
+import { fmt } from "@/lib/i18n/format";
 import { prisma } from "@/lib/prisma";
 import { BrandVoiceForm } from "@/components/brand-voice-form";
 import { DeleteSiteForm, RenameSiteForm } from "@/components/site-admin-forms";
@@ -11,6 +13,7 @@ type PageProps = { params: Promise<{ siteId: string }> };
 
 export default async function SettingsPage({ params }: PageProps) {
   const user = await requireUser();
+  const { t } = await getT();
   const { siteId } = await params;
 
   const site = await prisma.site.findFirst({
@@ -32,7 +35,7 @@ export default async function SettingsPage({ params }: PageProps) {
   return (
     <main className="mx-auto max-w-3xl px-6 py-8">
       <header className="mb-6">
-        <h1 className="text-lg font-semibold">Settings</h1>
+        <h1 className="text-lg font-semibold">{t.settings.title}</h1>
         <p className="mt-0.5 text-sm text-muted">
           {site.name} · <span className="font-mono text-xs">{site.domain}</span>
         </p>
@@ -43,15 +46,15 @@ export default async function SettingsPage({ params }: PageProps) {
           <CardHeader
             title={
               <span className="flex items-center gap-2">
-                Brand voice
+                {t.settings.brandVoice}
                 {isBrandVoiceUsable(brandVoice) ? (
-                  <Badge tone="positive">configured</Badge>
+                  <Badge tone="positive">{t.common.configured}</Badge>
                 ) : (
-                  <Badge>not set</Badge>
+                  <Badge>{t.common.notSet}</Badge>
                 )}
               </span>
             }
-            hint="Long-lived context for every content call. Topic selection, outlines and drafts all read from here."
+            hint={t.settings.brandVoiceHint}
           />
           <BrandVoiceForm siteId={siteId} initial={brandVoice} />
         </Card>
@@ -60,23 +63,29 @@ export default async function SettingsPage({ params }: PageProps) {
           <CardHeader
             title={
               <span className="flex items-center gap-2">
-                AI usage
-                {aiReady ? <Badge tone="positive">connected</Badge> : <Badge>not configured</Badge>}
+                {t.settings.aiUsage}
+                {aiReady ? (
+                  <Badge tone="positive">{t.common.connected}</Badge>
+                ) : (
+                  <Badge>{t.common.notConnected}</Badge>
+                )}
               </span>
             }
-            hint="Month-to-date spend, summed from what each run actually reported."
+            hint={t.settings.aiUsageHint}
           />
           <div className="px-5 py-4">
             {aiReady ? (
               <>
                 <div className="flex items-baseline justify-between">
                   <p className="tnum text-2xl font-semibold">${spent.toFixed(2)}</p>
-                  <p className="tnum text-sm text-muted">of ${budget.toFixed(2)}</p>
+                  <p className="tnum text-sm text-muted">
+                    {fmt(t.settings.ofBudget, { budget: `$${budget.toFixed(2)}` })}
+                  </p>
                 </div>
                 <div
                   className="mt-2 h-2 overflow-hidden rounded-full bg-panel-alt"
                   role="img"
-                  aria-label={`${usedPct.toFixed(0)}% of the monthly AI budget used`}
+                  aria-label={fmt(t.settings.budgetAria, { pct: usedPct.toFixed(0) })}
                 >
                   <div
                     className="h-full rounded-full"
@@ -86,39 +95,31 @@ export default async function SettingsPage({ params }: PageProps) {
                     }}
                   />
                 </div>
-                <p className="mt-2 text-xs text-muted">
-                  New runs are refused once this ceiling is reached. Change it with{" "}
-                  <code className="font-mono">AI_MAX_MONTHLY_USD</code> in{" "}
-                  <code className="font-mono">.env</code>.
-                </p>
+                <p className="mt-2 text-xs text-muted">{t.settings.budgetNote}</p>
               </>
             ) : (
-              <p className="text-sm text-muted">
-                Set <code className="font-mono">AI_API_KEY</code> in{" "}
-                <code className="font-mono">.env</code> to enable prioritisation, rewrites and
-                content generation. Audits still run without it — see{" "}
-                <code className="font-mono">docs/ai-gateway-setup.md</code>.
-              </p>
+              <p className="text-sm text-muted">{t.settings.aiNotConfigured}</p>
             )}
           </div>
         </Card>
 
         <Card>
-          <CardHeader title="Site" hint="Renaming only changes the label in this dashboard." />
+          <CardHeader title={t.settings.site} hint={t.settings.siteHint} />
           <RenameSiteForm siteId={siteId} name={site.name} />
           {googleBinding ? (
             <div className="border-t border-line px-5 py-3">
               <p className="text-xs text-muted">
-                Bound to Search Console property{" "}
-                <span className="font-mono">{googleBinding.resourceId}</span> via{" "}
-                {googleBinding.connection.accountLabel}
+                {fmt(t.settings.boundTo, {
+                  property: googleBinding.resourceId,
+                  account: googleBinding.connection.accountLabel,
+                })}
               </p>
             </div>
           ) : null}
         </Card>
 
         <Card className="border-neg/30">
-          <CardHeader title="Delete site" hint="This cannot be undone." />
+          <CardHeader title={t.settings.deleteSite} hint={t.settings.deleteWarning} />
           <DeleteSiteForm siteId={siteId} name={site.name} />
         </Card>
       </div>

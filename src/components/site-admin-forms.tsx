@@ -7,6 +7,8 @@ import {
   deleteSite,
   renameSite,
 } from "@/app/(dash)/sites/[siteId]/settings/actions";
+import { fmt } from "@/lib/i18n/format";
+import { useT } from "./i18n-provider";
 import { buttonClass, inputClass } from "./ui";
 
 function Submit({ label, busy, variant = "secondary" }: {
@@ -23,6 +25,7 @@ function Submit({ label, busy, variant = "secondary" }: {
 }
 
 export function RenameSiteForm({ siteId, name }: { siteId: string; name: string }) {
+  const t = useT();
   const [state, action] = useActionState<SettingsFormState, FormData>(renameSite, null);
 
   return (
@@ -30,7 +33,7 @@ export function RenameSiteForm({ siteId, name }: { siteId: string; name: string 
       <input type="hidden" name="siteId" value={siteId} />
       <div className="min-w-56 flex-1">
         <label htmlFor="site-name" className="block text-sm font-medium">
-          Display name
+          {t.settings.displayName}
         </label>
         <input
           id="site-name"
@@ -39,7 +42,7 @@ export function RenameSiteForm({ siteId, name }: { siteId: string; name: string 
           className={inputClass("mt-1.5")}
         />
       </div>
-      <Submit label="Rename" busy="Renaming…" />
+      <Submit label={t.settings.rename} busy={t.settings.renaming} />
       {state ? (
         <p className={state.ok ? "text-sm text-pos" : "text-sm text-neg"}>{state.message}</p>
       ) : null}
@@ -52,20 +55,18 @@ export function RenameSiteForm({ siteId, name }: { siteId: string; name: string 
  * button stays disabled until the name is typed back exactly.
  */
 export function DeleteSiteForm({ siteId, name }: { siteId: string; name: string }) {
+  const t = useT();
   const [confirmation, setConfirmation] = useState("");
   const matches = confirmation.trim() === name;
 
   return (
     <form action={deleteSite} className="px-5 py-4">
       <input type="hidden" name="siteId" value={siteId} />
-      <p className="text-sm text-muted">
-        Removes the site along with all stored Search Console data, audits and drafts. The
-        Search Console property itself is untouched — you can re-add it from Connections.
-      </p>
+      <p className="text-sm text-muted">{t.settings.deleteNote}</p>
       <div className="mt-3 flex flex-wrap items-end gap-3">
         <div className="min-w-56 flex-1">
           <label htmlFor="confirm-name" className="block text-sm font-medium">
-            Type <span className="font-mono">{name}</span> to confirm
+            {fmt(t.settings.typeToConfirm, { name })}
           </label>
           <input
             id="confirm-name"
@@ -81,7 +82,7 @@ export function DeleteSiteForm({ siteId, name }: { siteId: string; name: string 
           disabled={!matches}
           className={buttonClass("secondary", "border-neg/40 text-neg disabled:opacity-40")}
         >
-          Delete site
+          {t.settings.deleteSite}
         </button>
       </div>
     </form>

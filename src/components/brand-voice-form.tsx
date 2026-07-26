@@ -7,13 +7,14 @@ import {
   saveBrandVoice,
 } from "@/app/(dash)/sites/[siteId]/settings/actions";
 import { type BrandVoice, EMPTY_BRAND_VOICE } from "@/lib/brand-voice";
+import { useT } from "./i18n-provider";
 import { Field, buttonClass, inputClass } from "./ui";
 
-function SubmitButton() {
+function SubmitButton({ label, busy }: { label: string; busy: string }) {
   const { pending } = useFormStatus();
   return (
     <button type="submit" disabled={pending} className={buttonClass("primary")}>
-      {pending ? "Saving…" : "Save brand voice"}
+      {pending ? busy : label}
     </button>
   );
 }
@@ -25,6 +26,7 @@ export function BrandVoiceForm({
   siteId: string;
   initial: BrandVoice | null;
 }) {
+  const t = useT();
   const [state, action] = useActionState<SettingsFormState, FormData>(saveBrandVoice, null);
   const voice = initial ?? EMPTY_BRAND_VOICE;
 
@@ -33,9 +35,9 @@ export function BrandVoiceForm({
       <input type="hidden" name="siteId" value={siteId} />
 
       <Field
-        label="Tone"
+        label={t.settings.tone}
         htmlFor="tone"
-        hint="How the writing should sound. Be specific — “professional but approachable, engineer-to-engineer” beats “friendly”."
+        hint={t.settings.toneHint}
       >
         <input
           id="tone"
@@ -46,7 +48,7 @@ export function BrandVoiceForm({
         />
       </Field>
 
-      <Field label="Audience" htmlFor="audience" hint="Who is reading, and what they already know.">
+      <Field label={t.settings.audience} htmlFor="audience" hint={t.settings.audienceHint}>
         <input
           id="audience"
           name="audience"
@@ -57,7 +59,7 @@ export function BrandVoiceForm({
       </Field>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Field label="Language" htmlFor="language" hint="BCP-47 tag.">
+        <Field label={t.settings.language} htmlFor="language" hint={t.settings.languageHint}>
           <input
             id="language"
             name="language"
@@ -66,7 +68,7 @@ export function BrandVoiceForm({
             placeholder="en-US"
           />
         </Field>
-        <Field label="Min words" htmlFor="minWords">
+        <Field label={t.settings.minWords} htmlFor="minWords">
           <input
             id="minWords"
             name="minWords"
@@ -76,7 +78,7 @@ export function BrandVoiceForm({
             className={inputClass("tnum")}
           />
         </Field>
-        <Field label="Max words" htmlFor="maxWords">
+        <Field label={t.settings.maxWords} htmlFor="maxWords">
           <input
             id="maxWords"
             name="maxWords"
@@ -89,9 +91,9 @@ export function BrandVoiceForm({
       </div>
 
       <Field
-        label="Core topics"
+        label={t.settings.coreTopics}
         htmlFor="coreTopics"
-        hint="What this site is about. Comma or newline separated."
+        hint={t.settings.coreTopicsHint}
       >
         <textarea
           id="coreTopics"
@@ -104,9 +106,9 @@ export function BrandVoiceForm({
       </Field>
 
       <Field
-        label="Priority keywords"
+        label={t.settings.keywords}
         htmlFor="keywords"
-        hint="Terms you want to rank for. Topic selection weights these alongside Search Console data."
+        hint={t.settings.keywordsHint}
       >
         <textarea
           id="keywords"
@@ -119,9 +121,9 @@ export function BrandVoiceForm({
       </Field>
 
       <Field
-        label="Forbidden"
+        label={t.settings.forbidden}
         htmlFor="forbidden"
-        hint="Words and claims the brand will not make. Matched on word boundaries with short inflections — “cheap” also catches “cheaper” and “cheapest”, but not “recheap”."
+        hint={t.settings.forbiddenHint}
       >
         <textarea
           id="forbidden"
@@ -134,9 +136,9 @@ export function BrandVoiceForm({
       </Field>
 
       <Field
-        label="Reference URLs"
+        label={t.settings.referenceUrls}
         htmlFor="referenceUrls"
-        hint="Existing pieces that set the house style."
+        hint={t.settings.referenceUrlsHint}
       >
         <textarea
           id="referenceUrls"
@@ -149,9 +151,9 @@ export function BrandVoiceForm({
       </Field>
 
       <Field
-        label="Image style"
+        label={t.settings.imageStyle}
         htmlFor="imageStyle"
-        hint="Used when image generation is wired up. Safe to leave blank for now."
+        hint={t.settings.imageStyleHint}
       >
         <input
           id="imageStyle"
@@ -163,7 +165,7 @@ export function BrandVoiceForm({
       </Field>
 
       <div className="flex items-center gap-3 pt-1">
-        <SubmitButton />
+        <SubmitButton label={t.settings.saveBrandVoice} busy={t.common.saving} />
         {state ? (
           <p className={state.ok ? "text-sm text-pos" : "text-sm text-neg"}>{state.message}</p>
         ) : null}

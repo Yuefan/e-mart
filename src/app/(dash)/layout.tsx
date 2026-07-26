@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
+import { getT } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
 import { Brand } from "@/components/brand";
 import { SidebarNav } from "@/components/sidebar-nav";
@@ -11,6 +12,7 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const user = await requireUser();
+  const { t } = await getT();
 
   const [sites, connections] = await Promise.all([
     prisma.site.findMany({
@@ -31,7 +33,7 @@ export default async function DashboardLayout({
           <Link href="/" className="block transition-opacity hover:opacity-80">
             <Brand size="md" />
           </Link>
-          <p className="mt-1 text-xs text-muted">Marketing dashboard</p>
+          <p className="mt-1 text-xs text-muted">{t.common.subtitle}</p>
         </div>
 
         <SidebarNav sites={sites} />

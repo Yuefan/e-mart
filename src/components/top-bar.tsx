@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { fmt } from "@/lib/i18n/format";
 import { Brand } from "./brand";
+import { useT } from "./i18n-provider";
+import { LocaleToggle } from "./locale-toggle";
 import { buttonClass } from "./ui";
 
 export type TopBarUser = {
@@ -57,6 +60,7 @@ export function TopBar({
 }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const t = useT();
 
   useEffect(() => {
     if (!open) return;
@@ -86,14 +90,15 @@ export function TopBar({
       <div className="hidden md:block" />
 
       <div className="flex items-center gap-3">
+        <LocaleToggle />
         <Link
           href="/account"
           className="hidden items-center gap-1.5 text-xs text-muted transition-colors hover:text-fg sm:flex"
         >
-          {connectionCount} account{connectionCount === 1 ? "" : "s"}
+          {fmt(t.nav.accountsCount, { n: connectionCount }, connectionCount)}
           {needsAttention > 0 ? (
             <span className="rounded-md bg-panel-alt px-1.5 py-0.5 font-medium text-neg">
-              {needsAttention} need{needsAttention === 1 ? "s" : ""} attention
+              {fmt(t.nav.needsAttention, { n: needsAttention }, needsAttention)}
             </span>
           ) : null}
         </Link>
@@ -141,7 +146,7 @@ export function TopBar({
                   onClick={() => setOpen(false)}
                   className="block px-4 py-2 text-sm transition-colors hover:bg-panel-alt"
                 >
-                  Account & connected apps
+                  {t.nav.accountAndApps}
                 </Link>
                 <Link
                   href="/connections"
@@ -149,7 +154,7 @@ export function TopBar({
                   onClick={() => setOpen(false)}
                   className="block px-4 py-2 text-sm transition-colors hover:bg-panel-alt"
                 >
-                  Connections
+                  {t.nav.connections}
                 </Link>
               </nav>
 
@@ -159,7 +164,7 @@ export function TopBar({
                   role="menuitem"
                   className={buttonClass("ghost", "w-full justify-start px-3 text-sm")}
                 >
-                  Sign out
+                  {t.common.signOut}
                 </button>
               </form>
             </div>

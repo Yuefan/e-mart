@@ -1,3 +1,5 @@
+import { getT } from "@/lib/i18n";
+import { fmt } from "@/lib/i18n/format";
 import { cn } from "@/lib/utils";
 
 /**
@@ -5,7 +7,8 @@ import { cn } from "@/lib/utils";
  * axis. Colour follows the status palette and never carries the meaning alone —
  * the number and the band label are both present.
  */
-export function ScoreRing({ score, size = 104 }: { score: number; size?: number }) {
+export async function ScoreRing({ score, size = 104 }: { score: number; size?: number }) {
+  const { t } = await getT();
   const stroke = 9;
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -13,14 +16,14 @@ export function ScoreRing({ score, size = 104 }: { score: number; size?: number 
 
   const band =
     score >= 80
-      ? { label: "Good", color: "var(--pos)" }
+      ? { label: t.seo.good, color: "var(--pos)" }
       : score >= 55
-        ? { label: "Needs work", color: "var(--accent)" }
-        : { label: "Poor", color: "var(--neg)" };
+        ? { label: t.seo.needsWork, color: "var(--accent)" }
+        : { label: t.seo.poor, color: "var(--neg)" };
 
   return (
     <div className="flex items-center gap-4">
-      <svg width={size} height={size} role="img" aria-label={`SEO score ${score} of 100`}>
+      <svg width={size} height={size} role="img" aria-label={fmt(t.seo.scoreAria, { score })}>
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -56,7 +59,7 @@ export function ScoreRing({ score, size = 104 }: { score: number; size?: number 
         <p className={cn("text-sm font-semibold")} style={{ color: band.color }}>
           {band.label}
         </p>
-        <p className="text-xs text-muted">out of 100</p>
+        <p className="text-xs text-muted">{t.seo.outOf100}</p>
       </div>
     </div>
   );

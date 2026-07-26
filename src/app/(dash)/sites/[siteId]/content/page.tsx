@@ -4,6 +4,8 @@ import { isAiConfigured } from "@/lib/ai/client";
 import { requireUser } from "@/lib/auth";
 import { isBrandVoiceUsable, parseBrandVoice } from "@/lib/brand-voice";
 import { countWords } from "@/lib/content/checks";
+import { getT } from "@/lib/i18n";
+import { fmt } from "@/lib/i18n/format";
 import { arrayField } from "@/lib/json";
 import { prisma } from "@/lib/prisma";
 import { cn } from "@/lib/utils";
@@ -33,6 +35,7 @@ function countBlockers(checks: unknown): number {
 
 export default async function ContentPage({ params, searchParams }: PageProps) {
   const user = await requireUser();
+  const { t } = await getT();
   const { siteId } = await params;
 
   const site = await prisma.site.findFirst({ where: { id: siteId, userId: user.id } });
@@ -58,9 +61,9 @@ export default async function ContentPage({ params, searchParams }: PageProps) {
   return (
     <main className="mx-auto max-w-5xl px-6 py-8">
       <header className="mb-6">
-        <h1 className="text-lg font-semibold">Content</h1>
+        <h1 className="text-lg font-semibold">{t.content.title}</h1>
         <p className="mt-0.5 text-sm text-muted">
-          {site.name} · topic selection → outline → draft → checks
+          {fmt(t.content.siteIntro, { site: site.name })}
         </p>
       </header>
 
@@ -68,28 +71,29 @@ export default async function ContentPage({ params, searchParams }: PageProps) {
         <Card className="mb-4 border-accent/30">
           <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5">
             <p className="text-sm">
-              <span className="font-medium">Set the brand voice first.</span>{" "}
-              <span className="text-muted">
-                Without it drafts come out generic — tone, audience and forbidden terms all feed
-                the writer.
-              </span>
+              <span className="font-medium">{t.content.setBrandVoice}</span>{" "}
+              <span className="text-muted">{t.content.setBrandVoiceHint}</span>
             </p>
             <Link href={`/sites/${siteId}/settings`} className={buttonClass("secondary")}>
-              Configure
+              {t.content.configure}
             </Link>
           </div>
         </Card>
       ) : null}
 
       <Card className="mb-4">
-        <CardHeader title="New draft" />
+        <CardHeader title={t.content.newDraft} />
         <TopicPicker siteId={siteId} aiConfigured={aiReady} />
       </Card>
 
       <Card>
         <CardHeader
-          title="Drafts"
-          hint={status ? `${articles.length} of ${total} shown` : `${total} total`}
+          title={t.content.drafts}
+          hint={
+            status
+              ? fmt(t.seo.shownOf, { shown: articles.length, total })
+              : fmt(t.seo.total, { n: total })
+          }
         />
 
         <div className="flex flex-wrap gap-1 border-b border-line px-5 py-3">
@@ -100,25 +104,25 @@ export default async function ContentPage({ params, searchParams }: PageProps) {
               status === null ? "bg-panel-alt text-fg" : "text-muted hover:text-fg",
             )}
           >
-            All
+            {t.content.all}
           </Link>
           {STATUSES.map((value) => (
             <Link
               key={value}
               href={`${basePath}?status=${value}`}
               className={cn(
-                "rounded-md px-2 py-1 text-xs font-medium capitalize transition-colors",
+                "rounded-md px-2 py-1 text-xs font-medium transition-colors",
                 status === value ? "bg-panel-alt text-fg" : "text-muted hover:text-fg",
               )}
             >
-              {value}
+              {t.content.statuses[value]}
             </Link>
           ))}
         </div>
 
         {articles.length === 0 ? (
           <p className="px-5 py-12 text-center text-sm text-muted">
-            {total === 0 ? "No drafts yet." : "Nothing with that status."}
+            {total === 0 ? t.content.noDrafts : t.content.nothingWithStatus}
           </p>
         ) : (
           <ul className="divide-y divide-line/60">
@@ -133,18 +137,20 @@ export default async function ContentPage({ params, searchParams }: PageProps) {
                     <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                       <p className="text-sm font-medium">{article.title}</p>
                       <Badge tone={STATUS_TONE[article.status] ?? "neutral"}>
-                        {article.status}
+                        {t.content.statuses[
+                          article.status as keyof typeof t.content.statuses
+                        ] ?? article.status}
                       </Badge>
                       {blockers > 0 ? (
                         <Badge tone="negative">
-                          {blockers} blocker{blockers === 1 ? "" : "s"}
+                          {fmt(t.content.blockers, { n: blockers }, blockers)}
                         </Badge>
                       ) : null}
                     </div>
                     <p className="mt-1 truncate text-xs text-muted">
                       <span className="font-mono">/{article.slug}</span>
                       {article.targetKeyword ? ` · ${article.targetKeyword}` : ""} ·{" "}
-                      {countWords(article.bodyMd)} words ·{" "}
+                      {fmt(t.content.words, { n: countWords(article.bodyMd) })} ·{" "}
                       {article.createdAt.toISOString().slice(0, 10)}
                     </p>
                   </Link>

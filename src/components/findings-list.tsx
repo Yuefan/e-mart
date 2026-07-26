@@ -1,14 +1,17 @@
 import type { Finding } from "@prisma/client";
 import Link from "next/link";
 import { CATEGORIES, SEVERITIES } from "@/lib/ai/schemas";
+import { getT } from "@/lib/i18n";
+import { fmt } from "@/lib/i18n/format";
 import { cn, shortenUrl } from "@/lib/utils";
 import { Badge, Card, CardHeader } from "./ui";
 
-const SEVERITY_TONE: Record<string, { label: string; className: string }> = {
-  critical: { label: "Critical", className: "text-neg" },
-  high: { label: "High", className: "text-neg" },
-  medium: { label: "Medium", className: "text-accent" },
-  low: { label: "Low", className: "text-muted" },
+/** Colour only; the label comes from the dictionary keyed by the same level. */
+const SEVERITY_TONE: Record<string, string> = {
+  critical: "text-neg",
+  high: "text-neg",
+  medium: "text-accent",
+  low: "text-muted",
 };
 
 function FilterLinks({
@@ -61,7 +64,7 @@ function FilterLinks({
   );
 }
 
-export function FindingsList({
+export async function FindingsList({
   findings,
   basePath,
   severity,
@@ -74,6 +77,7 @@ export function FindingsList({
   category: string | null;
   total: number;
 }) {
+  const { t } = await getT();
   const preserve: Record<string, string> = {};
   if (severity) preserve.severity = severity;
   if (category) preserve.category = category;
@@ -87,43 +91,41 @@ export function FindingsList({
   return (
     <Card>
       <CardHeader
-        title="Findings"
+        title={t.seo.findings}
         hint={
           findings.length === total
-            ? `${total} total`
-            : `${findings.length} of ${total} shown`
+            ? fmt(t.seo.total, { n: total })
+            : fmt(t.seo.shownOf, { shown: findings.length, total })
         }
       />
 
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-line px-5 py-3">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-muted">Severity</span>
+          <span className="text-xs text-muted">{t.seo.severity}</span>
           <FilterLinks
             basePath={basePath}
             param="severity"
             values={SEVERITIES}
             active={severity}
-            allLabel="All"
+            allLabel={t.seo.all}
             preserve={category ? { category } : {}}
           />
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-muted">Category</span>
+          <span className="text-xs text-muted">{t.seo.category}</span>
           <FilterLinks
             basePath={basePath}
             param="category"
             values={CATEGORIES}
             active={category}
-            allLabel="All"
+            allLabel={t.seo.all}
             preserve={severity ? { severity } : {}}
           />
         </div>
       </div>
 
       {findings.length === 0 ? (
-        <p className="px-5 py-12 text-center text-sm text-muted">
-          Nothing matches this filter.
-        </p>
+        <p className="px-5 py-12 text-center text-sm text-muted">{t.seo.nothingMatches}</p>
       ) : (
         <div>
           {grouped.map((group) => (
@@ -131,10 +133,11 @@ export function FindingsList({
               <h3
                 className={cn(
                   "border-b border-line bg-panel-alt px-5 py-1.5 text-xs font-semibold tracking-wide uppercase",
-                  SEVERITY_TONE[group.level]?.className,
+                  SEVERITY_TONE[group.level],
                 )}
               >
-                {SEVERITY_TONE[group.level]?.label ?? group.level} · {group.rows.length}
+                {t.seo.severities[group.level as keyof typeof t.seo.severities] ?? group.level} ·{" "}
+                {group.rows.length}
               </h3>
               <ul className="divide-y divide-line/60">
                 {group.rows.map((finding) => (
@@ -142,10 +145,12 @@ export function FindingsList({
                     <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                       <p className="text-sm font-medium">{finding.title}</p>
                       <Badge tone={finding.source === "ai" ? "accent" : "neutral"}>
-                        {finding.source === "ai" ? "AI" : "rule"}
+                        {finding.source === "ai" ? t.seo.ai : t.seo.rule}
                       </Badge>
                       <Badge>{finding.category}</Badge>
-                      {finding.autoFixable ? <Badge tone="positive">adoptable</Badge> : null}
+                      {finding.autoFixable ? (
+                        <Badge tone="positive">{t.seo.adoptable}</Badge>
+                      ) : null}
                     </div>
 
                     {finding.url ? (
@@ -162,7 +167,7 @@ export function FindingsList({
 
                     <p className="mt-1.5 text-sm text-muted">{finding.detail}</p>
                     <p className="mt-1.5 text-sm">
-                      <span className="font-medium">Fix: </span>
+                      <span className="font-medium">{t.seo.fix} </span>
                       {finding.suggestion}
                     </p>
                   </li>

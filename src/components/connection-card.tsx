@@ -2,8 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import type { Dictionary } from "@/lib/i18n/dictionaries";
+import { fmt } from "@/lib/i18n/format";
 import { cn } from "@/lib/utils";
 import { GoogleConnectButton } from "./google-connect-button";
+import { useT } from "./i18n-provider";
 import { Badge, buttonClass, inputClass } from "./ui";
 
 export type ConnectionView = {
@@ -27,18 +30,30 @@ type ActionState =
   | { kind: "removing" }
   | { kind: "error"; message: string };
 
-/** "expires in 43 minutes" / "expired 2 hours ago" */
-function relativeTime(iso: string | null): string {
-  if (!iso) return "unknown";
+/**
+ * "in 43 minutes" / "2 hours ago", in the active language.
+ *
+ * The span and the direction are separate dictionary entries because word order
+ * differs: English wraps the span ("in 3 days"), Chinese suffixes it ("3 天后").
+ */
+function relativeTime(iso: string | null, t: Dictionary): string {
+  if (!iso) return t.account.unknownTime;
+
   const deltaMs = new Date(iso).getTime() - Date.now();
   const minutes = Math.round(Math.abs(deltaMs) / 60_000);
-  const label =
-    minutes < 60
-      ? `${minutes} minute${minutes === 1 ? "" : "s"}`
-      : minutes < 60 * 48
-        ? `${Math.round(minutes / 60)} hour${Math.round(minutes / 60) === 1 ? "" : "s"}`
-        : `${Math.round(minutes / 1440)} days`;
-  return deltaMs >= 0 ? `in ${label}` : `${label} ago`;
+
+  let span: string;
+  if (minutes < 60) {
+    span = fmt(t.account.rel.minutes, { n: minutes }, minutes);
+  } else if (minutes < 60 * 48) {
+    const hours = Math.round(minutes / 60);
+    span = fmt(t.account.rel.hours, { n: hours }, hours);
+  } else {
+    const days = Math.round(minutes / 1440);
+    span = fmt(t.account.rel.days, { n: days }, days);
+  }
+
+  return fmt(deltaMs >= 0 ? t.account.rel.future : t.account.rel.past, { span });
 }
 
 /** `https://www.googleapis.com/auth/webmasters.readonly` -> `webmasters.readonly` */
@@ -48,6 +63,7 @@ function shortScope(scope: string): string {
 
 export function ConnectionCard({ connection }: { connection: ConnectionView }) {
   const router = useRouter();
+  const t = useT();
   const [state, setState] = useState<ActionState>({ kind: "idle" });
   const [confirming, setConfirming] = useState(false);
   const [confirmText, setConfirmText] = useState("");
@@ -60,18 +76,24 @@ export function ConnectionCard({ connection }: { connection: ConnectionView }) {
     try {
       const res = await fetch(`/api/connections/${connection.id}`, { method: "POST" });
       const body = await res.json();
-      if (!res.ok || !body.ok) throw new Error(body?.error ?? `Check failed (${res.status})`);
+      if (!res.ok || !body.ok) {
+        throw new Error(body?.error ?? `${t.account.checkFailed} (${res.status})`);
+      }
       setState({
         kind: "checked",
         ok: true,
-        message: `Working — ${body.propertyCount} propert${body.propertyCount === 1 ? "y" : "ies"} visible.`,
+        message: fmt(
+          t.account.checkOk,
+          { n: body.propertyCount },
+          body.propertyCount,
+        ),
       });
       router.refresh();
     } catch (error) {
       setState({
         kind: "checked",
         ok: false,
-        message: error instanceof Error ? error.message : "Check failed",
+        message: error instanceof Error ? error.message : t.account.checkFailed,
       });
       router.refresh();
     }
@@ -82,12 +104,14 @@ export function ConnectionCard({ connection }: { connection: ConnectionView }) {
     try {
       const res = await fetch(`/api/connections/${connection.id}`, { method: "DELETE" });
       const body = await res.json();
-      if (!res.ok) throw new Error(body?.error ?? `Disconnect failed (${res.status})`);
+      if (!res.ok) {
+        throw new Error(body?.error ?? `${t.account.disconnectFailed} (${res.status})`);
+      }
       router.refresh();
     } catch (error) {
       setState({
         kind: "error",
-        message: error instanceof Error ? error.message : "Disconnect failed",
+        message: error instanceof Error ? error.message : t.account.disconnectFailed,
       });
     }
   }
@@ -98,15 +122,22 @@ export function ConnectionCard({ connection }: { connection: ConnectionView }) {
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-sm font-medium">{connection.accountLabel}</p>
-            <Badge tone={expired ? "negative" : "positive"}>{connection.status}</Badge>
+            <Badge tone={expired ? "negative" : "positive"}>
+              {t.account.statuses[connection.status as keyof typeof t.account.statuses] ??
+                connection.status}
+            </Badge>
             {!connection.hasRefreshToken ? (
-              <Badge tone="negative">no refresh token</Badge>
+              <Badge tone="negative">{t.account.noRefreshToken}</Badge>
             ) : null}
           </div>
           <p className="mt-1 text-xs text-muted">
-            Connected {connection.connectedAt.slice(0, 10)} · access token{" "}
-            {expired ? "invalid" : `expires ${relativeTime(connection.expiresAt)}`}
-            {connection.hasRefreshToken ? " (auto-renewed)" : ""}
+            {fmt(t.account.connectedOn, { date: connection.connectedAt.slice(0, 10) })} ·{" "}
+            {expired
+              ? t.account.tokenInvalid
+              : fmt(t.account.tokenExpires, {
+                  rel: relativeTime(connection.expiresAt, t),
+                })}
+            {connection.hasRefreshToken ? t.account.autoRenewed : ""}
           </p>
         </div>
 
@@ -117,11 +148,11 @@ export function ConnectionCard({ connection }: { connection: ConnectionView }) {
             disabled={busy}
             className={buttonClass("secondary", "text-xs")}
           >
-            {state.kind === "checking" ? "Checking…" : "Test"}
+            {state.kind === "checking" ? t.account.checking : t.account.test}
           </button>
           <GoogleConnectButton
             returnTo="/account"
-            label="Re-authorize"
+            label={t.account.reauthorize}
             variant={expired ? "primary" : "secondary"}
             className="text-xs"
           />
@@ -137,10 +168,10 @@ export function ConnectionCard({ connection }: { connection: ConnectionView }) {
 
       <dl className="mt-3 grid gap-x-6 gap-y-2 text-xs sm:grid-cols-2">
         <div>
-          <dt className="text-muted">Permissions granted</dt>
+          <dt className="text-muted">{t.account.permissionsGranted}</dt>
           <dd className="mt-1 flex flex-wrap gap-1">
             {connection.scopes.length === 0 ? (
-              <span className="text-muted">none recorded</span>
+              <span className="text-muted">{t.account.noneRecorded}</span>
             ) : (
               connection.scopes.map((scope) => (
                 <span
@@ -155,10 +186,10 @@ export function ConnectionCard({ connection }: { connection: ConnectionView }) {
           </dd>
         </div>
         <div>
-          <dt className="text-muted">Sites using this account</dt>
+          <dt className="text-muted">{t.account.sitesUsing}</dt>
           <dd className="mt-1">
             {connection.boundSites.length === 0 ? (
-              <span className="text-muted">none yet</span>
+              <span className="text-muted">{t.account.noneYet}</span>
             ) : (
               <ul className="space-y-0.5">
                 {connection.boundSites.map((site) => (
@@ -180,28 +211,30 @@ export function ConnectionCard({ connection }: { connection: ConnectionView }) {
             onClick={() => setConfirming(true)}
             className={buttonClass("ghost", "-ml-2 px-2 text-xs text-neg")}
           >
-            Disconnect
+            {t.account.disconnect}
           </button>
         ) : (
           <div>
             <p className="text-xs text-muted">
-              Revokes the grant on Google and removes it here.{" "}
+              {t.account.disconnectWarning}{" "}
               {connection.boundSites.length > 0 ? (
                 <span className="text-neg">
-                  {connection.boundSites.length} site
-                  {connection.boundSites.length === 1 ? "" : "s"} will stop syncing.
+                  {fmt(
+                    t.account.disconnectSites,
+                    { n: connection.boundSites.length },
+                    connection.boundSites.length,
+                  )}
                 </span>
-              ) : null}{" "}
-              Stored Search Console data is kept.
+              ) : null}
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <input
                 value={confirmText}
                 onChange={(event) => setConfirmText(event.target.value)}
-                placeholder="type DISCONNECT"
+                placeholder={t.account.typeToConfirm}
                 autoComplete="off"
                 className={inputClass("w-48 py-1.5 text-xs")}
-                aria-label="Type DISCONNECT to confirm"
+                aria-label={t.account.typeToConfirm}
               />
               <button
                 type="button"
@@ -212,7 +245,9 @@ export function ConnectionCard({ connection }: { connection: ConnectionView }) {
                   "border-neg/40 text-xs text-neg disabled:opacity-40",
                 )}
               >
-                {state.kind === "removing" ? "Disconnecting…" : "Confirm disconnect"}
+                {state.kind === "removing"
+                  ? t.account.disconnecting
+                  : t.account.confirmDisconnect}
               </button>
               <button
                 type="button"
@@ -222,7 +257,7 @@ export function ConnectionCard({ connection }: { connection: ConnectionView }) {
                 }}
                 className={buttonClass("ghost", "text-xs")}
               >
-                Cancel
+                {t.common.cancel}
               </button>
             </div>
           </div>

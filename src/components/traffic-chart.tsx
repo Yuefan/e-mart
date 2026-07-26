@@ -11,13 +11,16 @@ import {
   YAxis,
 } from "recharts";
 import type { SeriesPoint } from "@/lib/gsc-queries";
+import type { Dictionary } from "@/lib/i18n/dictionaries";
 import { cn, formatNumber, formatPercent, formatPosition } from "@/lib/utils";
+import { useI18n } from "./i18n-provider";
 
 type MetricKey = "clicks" | "impressions" | "ctr" | "position";
 
 type MetricConfig = {
   key: MetricKey;
-  label: string;
+  /** Dictionary key rather than the text, so the label follows the locale. */
+  label: keyof Dictionary["overview"];
   color: string;
   format: (value: number) => string;
   /** Position 1 is the best rank, so its axis runs downward. */
@@ -25,17 +28,17 @@ type MetricConfig = {
 };
 
 const METRICS: MetricConfig[] = [
-  { key: "clicks", label: "Clicks", color: "var(--clicks)", format: formatNumber },
+  { key: "clicks", label: "clicks", color: "var(--clicks)", format: formatNumber },
   {
     key: "impressions",
-    label: "Impressions",
+    label: "impressions",
     color: "var(--impressions)",
     format: formatNumber,
   },
-  { key: "ctr", label: "CTR", color: "var(--clicks)", format: (v) => formatPercent(v, 2) },
+  { key: "ctr", label: "ctr", color: "var(--clicks)", format: (v) => formatPercent(v, 2) },
   {
     key: "position",
-    label: "Avg. position",
+    label: "avgPosition",
     color: "var(--impressions)",
     format: formatPosition,
     reversed: true,
@@ -55,8 +58,8 @@ type ChartPoint = {
   previousPosition?: number;
 };
 
-function shortDate(day: string): string {
-  return new Date(`${day}T00:00:00Z`).toLocaleDateString("en-US", {
+function shortDate(day: string, locale: string): string {
+  return new Date(`${day}T00:00:00Z`).toLocaleDateString(locale, {
     month: "short",
     day: "numeric",
     timeZone: "UTC",
@@ -75,6 +78,7 @@ export function TrafficChart({
   series: SeriesPoint[];
   previousSeries?: SeriesPoint[] | null;
 }) {
+  const { t } = useI18n();
   const [visible, setVisible] = useState<MetricKey[]>(["clicks", "impressions"]);
 
   const data = useMemo<ChartPoint[]>(
@@ -112,9 +116,7 @@ export function TrafficChart({
 
   if (series.length === 0) {
     return (
-      <p className="px-5 py-14 text-center text-sm text-muted">
-        No Search Console rows for this window yet — run a sync.
-      </p>
+      <p className="px-5 py-14 text-center text-sm text-muted">{t.overview.noRowsYet}</p>
     );
   }
 
@@ -141,7 +143,7 @@ export function TrafficChart({
                 className="size-2 rounded-full"
                 style={{ background: active ? metric.color : "var(--line)" }}
               />
-              {metric.label}
+              {t.overview[metric.label] as string}
             </button>
           );
         })}
@@ -149,7 +151,12 @@ export function TrafficChart({
 
       <div className="space-y-5">
         {panels.map((metric) => (
-          <MetricPanel key={metric.key} metric={metric} data={data} hasPrevious={Boolean(previousSeries)} />
+          <MetricPanel
+            key={metric.key}
+            metric={metric}
+            data={data}
+            hasPrevious={Boolean(previousSeries)}
+          />
         ))}
       </div>
     </div>
@@ -165,12 +172,14 @@ function MetricPanel({
   data: ChartPoint[];
   hasPrevious: boolean;
 }) {
+  const { locale, t } = useI18n();
   const previousKey = `previous${metric.key[0].toUpperCase()}${metric.key.slice(1)}`;
+  const bcp47 = locale === "zh" ? "zh-CN" : "en-US";
 
   return (
     <figure className="m-0">
       <figcaption className="mb-1 flex items-center gap-3">
-        <span className="text-xs font-semibold">{metric.label}</span>
+        <span className="text-xs font-semibold">{t.overview[metric.label] as string}</span>
         {hasPrevious ? (
           <span className="flex items-center gap-1.5 text-xs text-muted">
             <svg width="18" height="6" aria-hidden>
@@ -184,7 +193,7 @@ function MetricPanel({
                 strokeDasharray="4 3"
               />
             </svg>
-            previous period
+            {t.overview.previousPeriod}
           </span>
         ) : null}
       </figcaption>
@@ -194,7 +203,7 @@ function MetricPanel({
           <CartesianGrid stroke="var(--grid)" strokeDasharray="0" vertical={false} />
           <XAxis
             dataKey="date"
-            tickFormatter={shortDate}
+            tickFormatter={(day: string) => shortDate(day, bcp47)}
             tick={{ fill: "var(--muted)", fontSize: 11 }}
             tickLine={false}
             axisLine={{ stroke: "var(--line)" }}
@@ -219,7 +228,7 @@ function MetricPanel({
 
               return (
                 <div className="rounded-lg border border-line bg-panel px-3 py-2 text-xs shadow-lg">
-                  <p className="font-medium">{shortDate(point.date)}</p>
+                  <p className="font-medium">{shortDate(point.date, bcp47)}</p>
                   <p className="tnum mt-1 flex items-center gap-1.5">
                     <span
                       aria-hidden
@@ -231,7 +240,7 @@ function MetricPanel({
                   {previous !== undefined ? (
                     <p className="tnum mt-0.5 text-muted">
                       {metric.format(previous)}
-                      {point.previousDate ? ` · ${shortDate(point.previousDate)}` : ""}
+                      {point.previousDate ? ` · ${shortDate(point.previousDate, bcp47)}` : ""}
                     </p>
                   ) : null}
                 </div>

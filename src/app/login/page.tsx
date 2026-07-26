@@ -1,25 +1,16 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { isGoogleConfigured } from "@/lib/env";
+import { getT } from "@/lib/i18n";
+import { en } from "@/lib/i18n/dictionaries";
+import { fmt } from "@/lib/i18n/format";
 import { googleRedirectUri } from "@/lib/integrations/google/oauth";
 import { Brand } from "@/components/brand";
 import { GoogleConnectButton } from "@/components/google-connect-button";
+import { LocaleToggle } from "@/components/locale-toggle";
 import { Card } from "@/components/ui";
 
-const ERROR_COPY: Record<string, string> = {
-  google_not_configured:
-    "GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET are not set. Add them to .env and restart the dev server.",
-  state_mismatch:
-    "The sign-in link expired or was opened in a different browser. Please try again.",
-  missing_code: "Google did not return an authorization code. Please try again.",
-  google_unreachable:
-    "The server could not reach Google. Your browser reaches Google through a proxy, but Node does not use it automatically — start the app with `npm run dev` (which sets NODE_USE_ENV_PROXY=1) and make sure HTTPS_PROXY is set in your shell.",
-  token_exchange_failed:
-    "Google rejected the authorization code. The exact reason from Google is below.",
-  search_console_scope_declined:
-    "Search Console access was declined. The dashboard needs the read-only Search Console scope to show any data.",
-  access_denied: "Sign-in was cancelled.",
-};
+type ErrorCode = Exclude<keyof typeof en.login.errors, "generic">;
 
 export default async function LoginPage({
   searchParams,
@@ -30,21 +21,29 @@ export default async function LoginPage({
 
   const { error, detail } = await searchParams;
   const configured = isGoogleConfigured();
+  const { t } = await getT();
+
+  // `generic` is the fallback template, not a code the callback can send, so it
+  // is excluded from the lookup — otherwise ?error=generic would render the
+  // uninterpolated "Sign-in failed: {code}".
+  const known = error && error !== "generic" ? t.login.errors[error as ErrorCode] : undefined;
+  const errorCopy = error ? (known ?? fmt(t.login.errors.generic, { code: error })) : null;
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6">
-      <div className="mb-8">
-        <Brand size="lg" />
-        <p className="mt-3 text-sm text-muted">
-          Sign in with the Google account that owns your Search Console properties.
-        </p>
+      <div className="mb-8 flex items-start justify-between gap-4">
+        <div>
+          <Brand size="lg" />
+          <p className="mt-3 text-sm text-muted">{t.login.intro}</p>
+        </div>
+        <LocaleToggle />
       </div>
 
       <Card className="p-6">
-        {error ? (
+        {errorCopy ? (
           <div className="mb-4 rounded-lg border border-line bg-panel-alt px-3 py-2">
             <p className="text-sm text-neg">
-              {ERROR_COPY[error] ?? `Sign-in failed: ${error}`}
+              {errorCopy}
             </p>
             {detail ? (
               <p className="mt-1.5 font-mono text-xs break-all text-muted">{detail}</p>
@@ -56,39 +55,26 @@ export default async function LoginPage({
           <>
             <GoogleConnectButton
               returnTo="/connections"
-              label="Continue with Google"
+              label={t.login.continueWithGoogle}
               className="w-full"
             />
-            <p className="mt-4 text-xs leading-relaxed text-muted">
-              Requests read-only Search Console access plus your name and email. Tokens are
-              encrypted with AES-256-GCM before they touch the database and never reach the
-              browser.
-            </p>
+            <p className="mt-4 text-xs leading-relaxed text-muted">{t.login.scopeNote}</p>
           </>
         ) : (
           <div className="space-y-3 text-sm">
-            <p className="font-medium">Google OAuth isn&apos;t configured yet.</p>
+            <p className="font-medium">{t.login.notConfigured}</p>
             <ol className="list-decimal space-y-1.5 pl-5 text-muted">
+              <li>{t.login.step1}</li>
+              <li>{t.login.step2}</li>
               <li>
-                Enable the <strong>Google Search Console API</strong> in a Google Cloud project.
-              </li>
-              <li>
-                Create an OAuth client of type <strong>Web application</strong>.
-              </li>
-              <li>
-                Add this exact authorized redirect URI:
+                {t.login.step3}
                 <code className="mt-1 block rounded bg-panel-alt px-2 py-1 font-mono text-xs break-all">
                   {googleRedirectUri()}
                 </code>
               </li>
-              <li>
-                Put the client ID and secret in <code className="font-mono">.env</code>, then
-                restart <code className="font-mono">npm run dev</code>.
-              </li>
+              <li>{t.login.step4}</li>
             </ol>
-            <p className="text-xs text-muted">
-              Full walkthrough is in <code className="font-mono">docs/google-oauth-setup.md</code>.
-            </p>
+            <p className="text-xs text-muted">{t.login.walkthrough}</p>
           </div>
         )}
       </Card>

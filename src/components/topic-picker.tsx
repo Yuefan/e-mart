@@ -3,16 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { TopicIdea } from "@/lib/ai/schemas";
+import { fmt } from "@/lib/i18n/format";
 import { cn } from "@/lib/utils";
+import { useT } from "./i18n-provider";
 import { Badge, EmptyState, buttonClass } from "./ui";
 import { type JobSnapshot, useJob } from "./use-job";
-
-const INTENT_LABEL: Record<string, string> = {
-  informational: "Informational",
-  commercial: "Commercial",
-  transactional: "Transactional",
-  navigational: "Navigational",
-};
 
 function topicsFromLogs(logs: unknown): TopicIdea[] {
   if (typeof logs !== "object" || logs === null) return [];
@@ -28,6 +23,7 @@ export function TopicPicker({
   aiConfigured: boolean;
 }) {
   const router = useRouter();
+  const t = useT();
   const [topics, setTopics] = useState<TopicIdea[]>([]);
   const [generating, setGenerating] = useState<string | null>(null);
 
@@ -42,8 +38,8 @@ export function TopicPicker({
   if (!aiConfigured) {
     return (
       <EmptyState
-        title="Content generation needs the AI gateway"
-        description="Set AI_API_KEY in .env and restart the worker. Everything else in the dashboard works without it — see docs/ai-gateway-setup.md."
+        title={t.content.aiRequired}
+        description={t.content.aiRequiredHint}
       />
     );
   }
@@ -70,22 +66,16 @@ export function TopicPicker({
           className={buttonClass("primary")}
         >
           {ideation.busy
-            ? "Reading your Search Console data…"
+            ? t.content.readingGsc
             : topics.length
-              ? "Suggest different topics"
-              : "Suggest topics"}
+              ? t.content.suggestDifferent
+              : t.content.suggestTopics}
         </button>
-        <p className="text-xs text-muted">
-          Candidates come from queries you already rank for but rank badly — real demand, proven
-          relevance.
-        </p>
+        <p className="text-xs text-muted">{t.content.topicSourceHint}</p>
       </div>
 
       {waitingOnWorker ? (
-        <p className="mt-3 text-xs text-neg">
-          Still queued — nothing is draining the queue. Start the worker with{" "}
-          <code className="font-mono">npm run worker</code>.
-        </p>
+        <p className="mt-3 text-xs text-neg">{t.common.workerHint}</p>
       ) : null}
 
       {error ? <p className="mt-3 text-sm text-neg">{error}</p> : null}
@@ -104,12 +94,18 @@ export function TopicPicker({
               >
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <p className="text-sm font-medium">{topic.title}</p>
-                  <span className="tnum text-xs text-muted">value {topic.estValue}</span>
+                  <span className="tnum text-xs text-muted">
+                    {fmt(t.content.value, { n: topic.estValue })}
+                  </span>
                 </div>
 
                 <div className="mt-1.5 flex flex-wrap items-center gap-2">
                   <Badge tone="accent">{topic.targetKeyword}</Badge>
-                  <Badge>{INTENT_LABEL[topic.searchIntent] ?? topic.searchIntent}</Badge>
+                  <Badge>
+                    {t.content.intents[
+                      topic.searchIntent as keyof typeof t.content.intents
+                    ] ?? topic.searchIntent}
+                  </Badge>
                 </div>
 
                 <p className="mt-2 text-sm text-muted">{topic.angle}</p>
@@ -126,9 +122,9 @@ export function TopicPicker({
                 >
                   {isGenerating
                     ? generation.state.kind === "polling"
-                      ? `Writing… ${generation.state.job.progress}%`
-                      : "Queued…"
-                    : "Write this one"}
+                      ? fmt(t.content.writing, { pct: generation.state.job.progress })
+                      : t.common.queued
+                    : t.content.writeThisOne}
                 </button>
               </li>
             );

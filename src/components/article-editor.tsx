@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState, useSyncExternalStore } from "react";
 import type { MechanicalIssue } from "@/lib/content/checks";
 import { cn } from "@/lib/utils";
+import { fmt } from "@/lib/i18n/format";
+import { useT } from "./i18n-provider";
 import { SeoBar } from "./seo-bar";
 import { Badge, Card, CardHeader, buttonClass, inputClass } from "./ui";
 
@@ -98,7 +100,7 @@ export function ArticleEditor({
     } catch (error) {
       setSave({
         kind: "error",
-        message: error instanceof Error ? error.message : "Save failed",
+        message: error instanceof Error ? error.message : e.saveFailed,
       });
     }
   }
@@ -113,11 +115,13 @@ export function ArticleEditor({
     } catch (error) {
       setSave({
         kind: "error",
-        message: error instanceof Error ? error.message : "Delete failed",
+        message: error instanceof Error ? error.message : e.deleteFailed,
       });
     }
   }
 
+  const t = useT();
+  const e = t.content.editor;
   const blockers = issues.filter((issue) => issue.severity === "blocker");
   const warnings = issues.filter((issue) => issue.severity === "warning");
 
@@ -127,7 +131,7 @@ export function ArticleEditor({
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3">
           <div className="flex items-center gap-2">
             <label htmlFor="status" className="text-xs text-muted">
-              Status
+              {e.status}
             </label>
             <select
               id="status"
@@ -136,17 +140,17 @@ export function ArticleEditor({
                 update("status", event.target.value);
                 void persist({ status: event.target.value });
               }}
-              className={inputClass("w-auto py-1.5 text-xs capitalize")}
+              className={inputClass("w-auto py-1.5 text-xs")}
             >
               {STATUSES.map((value) => (
                 <option key={value} value={value}>
-                  {value}
+                  {t.content.statuses[value]}
                 </option>
               ))}
             </select>
             {blockers.length > 0 ? (
               <Badge tone="negative">
-                {blockers.length} blocker{blockers.length === 1 ? "" : "s"}
+                {fmt(t.content.blockers, { n: blockers.length }, blockers.length)}
               </Badge>
             ) : null}
           </div>
@@ -159,11 +163,11 @@ export function ArticleEditor({
               )}
             >
               {save.kind === "saving"
-                ? "Saving…"
+                ? t.common.saving
                 : save.kind === "saved"
-                  ? "Saved"
+                  ? t.common.saved
                   : save.kind === "dirty"
-                    ? "Unsaved changes"
+                    ? t.common.unsavedChanges
                     : save.kind === "error"
                       ? save.message
                       : ""}
@@ -173,7 +177,7 @@ export function ArticleEditor({
               onClick={() => setShowPreview((value) => !value)}
               className={buttonClass("ghost", "text-xs")}
             >
-              {showPreview ? "Hide preview" : "Show preview"}
+              {showPreview ? e.hidePreview : e.showPreview}
             </button>
             <button
               type="button"
@@ -181,7 +185,7 @@ export function ArticleEditor({
               disabled={save.kind === "saving"}
               className={buttonClass("primary")}
             >
-              Save
+              {t.common.save}
             </button>
           </div>
         </div>
@@ -219,11 +223,11 @@ export function ArticleEditor({
 
       <div className="grid gap-3 lg:grid-cols-2">
         <Card>
-          <CardHeader title="Metadata" />
+          <CardHeader title={e.metadata} />
           <div className="space-y-3 px-5 py-4">
             <div>
               <label htmlFor="title" className="block text-sm font-medium">
-                Title
+                {e.titleField}
               </label>
               <input
                 id="title"
@@ -234,7 +238,7 @@ export function ArticleEditor({
             </div>
             <div>
               <label htmlFor="slug" className="block text-sm font-medium">
-                Slug
+                {e.slugField}
               </label>
               <input
                 id="slug"
@@ -245,7 +249,7 @@ export function ArticleEditor({
             </div>
             <div>
               <label htmlFor="keyword" className="block text-sm font-medium">
-                Target keyword
+                {e.targetKeyword}
               </label>
               <input
                 id="keyword"
@@ -256,7 +260,7 @@ export function ArticleEditor({
             </div>
             <div>
               <label htmlFor="metaTitle" className="block text-sm font-medium">
-                Meta title
+                {e.metaTitle}
               </label>
               <input
                 id="metaTitle"
@@ -267,7 +271,7 @@ export function ArticleEditor({
             </div>
             <div>
               <label htmlFor="metaDesc" className="block text-sm font-medium">
-                Meta description
+                {e.metaDesc}
               </label>
               <textarea
                 id="metaDesc"
@@ -279,7 +283,7 @@ export function ArticleEditor({
             </div>
             <div>
               <label htmlFor="excerpt" className="block text-sm font-medium">
-                Excerpt
+                {e.excerptField}
               </label>
               <textarea
                 id="excerpt"
@@ -295,17 +299,18 @@ export function ArticleEditor({
         <div className="space-y-3">
           <Card>
             <CardHeader
-              title="Checks"
+              title={e.checks}
               hint={
                 issues.length === 0
-                  ? "Nothing flagged."
-                  : `${blockers.length} blocker(s), ${warnings.length} warning(s)`
+                  ? e.nothingFlagged
+                  : fmt(e.issueSummary, {
+                      blockers: blockers.length,
+                      warnings: warnings.length,
+                    })
               }
             />
             {issues.length === 0 ? (
-              <p className="px-5 py-8 text-center text-sm text-muted">
-                All mechanical checks pass.
-              </p>
+              <p className="px-5 py-8 text-center text-sm text-muted">{e.allPass}</p>
             ) : (
               <ul className="divide-y divide-line/60">
                 {[...blockers, ...warnings].map((issue, index) => (
@@ -331,20 +336,17 @@ export function ArticleEditor({
 
           <Card>
             <CardHeader
-              title="Publish"
-              hint="Targets unlock once Shopify or GitHub is connected."
+              title={e.publish}
+              hint={e.publishHint}
             />
             <div className="px-5 py-4">
-              <p className="text-sm text-muted">
-                Nothing to publish to yet. Connect a destination from the Connections page and
-                the draft can be pushed from here.
-              </p>
+              <p className="text-sm text-muted">{e.publishNote}</p>
               <button
                 type="button"
                 onClick={() => void remove()}
                 className={buttonClass("ghost", "mt-3 -ml-2 text-xs text-neg")}
               >
-                Delete draft
+                {e.deleteDraft}
               </button>
             </div>
           </Card>

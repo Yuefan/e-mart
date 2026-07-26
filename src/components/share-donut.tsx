@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import type { BreakdownRow } from "@/lib/gsc-queries";
+import { fmt } from "@/lib/i18n/format";
 import { cn, formatNumber, formatPercent } from "@/lib/utils";
+import { useT } from "./i18n-provider";
 
 /**
  * Part-to-whole for a small number of categories.
@@ -28,7 +30,17 @@ type Slice = {
   isOther: boolean;
 };
 
-function buildSlices(rows: BreakdownRow[], metric: "clicks" | "impressions"): Slice[] {
+/**
+ * The "Other" bucket is the one slice whose label is generated rather than
+ * coming from the data, so it is the only one that needs translating — the
+ * rest are country codes and device names from Search Console.
+ */
+
+function buildSlices(
+  rows: BreakdownRow[],
+  metric: "clicks" | "impressions",
+  otherLabel: (n: number) => string,
+): Slice[] {
   const withValue = rows
     .map((row) => ({ label: row.value, value: row[metric] }))
     .filter((row) => row.value > 0)
@@ -50,7 +62,7 @@ function buildSlices(rows: BreakdownRow[], metric: "clicks" | "impressions"): Sl
 
   if (tailValue > 0) {
     slices.push({
-      label: `Other (${tail.length})`,
+      label: otherLabel(tail.length),
       value: tailValue,
       share: tailValue / total,
       isOther: true,
@@ -60,8 +72,12 @@ function buildSlices(rows: BreakdownRow[], metric: "clicks" | "impressions"): Sl
   return slices;
 }
 
-function formatLabel(label: string, dimension: "country" | "device"): string {
-  if (label.startsWith("Other")) return label;
+function formatLabel(
+  label: string,
+  dimension: "country" | "device",
+  isOther: boolean,
+): string {
+  if (isOther) return label;
   if (dimension === "country") return label.toUpperCase();
   return label.charAt(0) + label.slice(1).toLowerCase();
 }
@@ -110,12 +126,14 @@ export function ShareDonut({
   metric?: "clicks" | "impressions";
 }) {
   const [active, setActive] = useState<number | null>(null);
-  const slices = buildSlices(rows, metric);
+  const t = useT();
+  const metricLabel = t.overview[metric] as string;
+  const slices = buildSlices(rows, metric, (n) => fmt(t.overview.other, { n }));
 
   if (slices.length === 0) {
     return (
       <p className="px-5 py-10 text-center text-sm text-muted">
-        No {metric} in this window.
+        {fmt(t.overview.noMetricWindow, { metric: metricLabel })}
       </p>
     );
   }
@@ -147,8 +165,8 @@ export function ShareDonut({
         height={size}
         viewBox={`0 0 ${size} ${size}`}
         role="img"
-        aria-label={`${dimension} share of ${metric}: ${slices
-          .map((s) => `${formatLabel(s.label, dimension)} ${formatPercent(s.share, 0)}`)
+        aria-label={`${dimension} · ${metricLabel}: ${slices
+          .map((s) => `${formatLabel(s.label, dimension, s.isOther)} ${formatPercent(s.share, 0)}`)
           .join(", ")}`}
         className="shrink-0"
         onMouseLeave={() => setActive(null)}
@@ -177,7 +195,7 @@ export function ShareDonut({
           {focused ? formatPercent(focused.share, 0) : formatNumber(total)}
         </text>
         <text x={cx} y={cy + 11} textAnchor="middle" className="fill-muted text-[10px]">
-          {focused ? formatLabel(focused.label, dimension) : metric}
+          {focused ? formatLabel(focused.label, dimension, focused.isOther) : metricLabel}
         </text>
       </svg>
 
@@ -198,7 +216,7 @@ export function ShareDonut({
               style={{ background: `var(--share-${index})` }}
             />
             <span className={cn("min-w-0 flex-1 truncate", slice.isOther && "text-muted")}>
-              {formatLabel(slice.label, dimension)}
+              {formatLabel(slice.label, dimension, slice.isOther)}
             </span>
             <span className="tnum shrink-0 text-xs text-muted">
               {formatNumber(slice.value)}

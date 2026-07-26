@@ -1,60 +1,64 @@
 # AI Marketing Dashboard
 
-按 [`ai-marketing-dashboard-spec.md`](./ai-marketing-dashboard-spec.md) 实现。当前完成 **P0 / P1 / P2**：Google 授权与 GSC 面板、AI SEO 诊断、内容生产。
+**English** | [中文](./README.zh-CN.md)
 
-## 已实现
+An implementation of [`ai-marketing-dashboard-spec.md`](./ai-marketing-dashboard-spec.md). **P0 / P1 / P2** are complete: Google authorization with a GSC dashboard, AI SEO auditing, and content production.
 
-**P0 — GSC 数据管道**
+The interface ships in English and Chinese — switch with the toggle in the top bar. English is the default.
 
-| 能力 | 位置 |
+## What's built
+
+**P0 — GSC data pipeline**
+
+| Capability | Location |
 |---|---|
-| Google OAuth 2.0 + PKCE 授权（登录即连接） | `src/app/api/connections/google/{start,callback}` |
-| 凭证 AES-256-GCM 加密落库、access token 到期前 5 分钟自动刷新 | `src/lib/crypto.ts`、`src/lib/integrations/google/oauth.ts` |
-| 账号总览：登录身份、会话有效期、各第三方账号的授权范围/令牌状态/绑定站点，可测试、重新授权、断开 | `/account` |
-| 列出账号下所有 GSC 资源，勾选绑定为 Site | `/connections` |
-| GSC 数据同步（5 个维度、分页、429/5xx 指数退避、窗口幂等重写） | `src/lib/jobs/gsc-sync.ts` |
-| KPI 卡 + 时序曲线 + Top Queries/Pages/国家/设备 | `/sites/[siteId]/overview` |
-| 衍生洞察：机会关键词 / 临界页面 / 下滑预警 | `src/lib/gsc-queries.ts` |
-| 常驻 worker + 定时任务（每日同步 / token 刷新 / 连接探活 / 每周诊断） | `src/worker/`、`src/lib/jobs/schedule.ts` |
+| Google OAuth 2.0 + PKCE (signing in *is* connecting) | `src/app/api/connections/google/{start,callback}` |
+| Credentials encrypted with AES-256-GCM at rest; access tokens refreshed 5 minutes before expiry | `src/lib/crypto.ts`, `src/lib/integrations/google/oauth.ts` |
+| Account overview: signed-in identity, session lifetime, and every third-party account's scopes, token state and bound sites — testable, re-authorizable, disconnectable | `/account` |
+| Lists every GSC property on an account; bind one as a Site | `/connections` |
+| GSC sync (5 dimensions, pagination, exponential backoff on 429/5xx, idempotent window rewrites) | `src/lib/jobs/gsc-sync.ts` |
+| KPI cards, time series, top queries/pages/countries/devices | `/sites/[siteId]/overview` |
+| Derived insights: opportunity keywords, striking distance, declining pages | `src/lib/gsc-queries.ts` |
+| Long-running worker + scheduled jobs (daily sync, token refresh, connection health, weekly audit) | `src/worker/`, `src/lib/jobs/schedule.ts` |
 
-**P1 — AI SEO 诊断**
+**P1 — AI SEO audit**
 
-| 能力 | 位置 |
+| Capability | Location |
 |---|---|
-| 现场抓取最多 50 个页面（限速退避、解析 title/meta/H1/canonical/OG/JSON-LD/alt/内链/hreflang） | `src/lib/seo/crawl.ts` |
-| 规则引擎：20+ 确定性检查，按真实曝光量加权严重度 | `src/lib/seo/rules.ts` |
-| AI 层：优先级排序、跨信号关联、可直接粘贴的标题/描述改写 | `src/lib/ai/`、`src/lib/jobs/seo-audit.ts` |
-| 评分环 + 摘要 + 按严重度分组、可按类别筛选的 Findings 列表 | `/sites/[siteId]/seo` |
+| Live crawl of up to 50 pages (rate-limited with backoff; parses title/meta/H1/canonical/OG/JSON-LD/alt/internal links/hreflang) | `src/lib/seo/crawl.ts` |
+| Rule engine: 20+ deterministic checks, severity weighted by real impression volume | `src/lib/seo/rules.ts` |
+| AI layer: prioritization, cross-signal correlation, paste-ready title/description rewrites | `src/lib/ai/`, `src/lib/jobs/seo-audit.ts` |
+| Score ring, summary, and a findings list grouped by severity and filterable by category | `/sites/[siteId]/seo` |
 
-> Cloudflare / GitHub / Shopify 三路证据源还空着（需要对应凭证）。诊断目前跑在 GSC + 现场抓取上。
+> The Cloudflare / GitHub / Shopify evidence sources are still empty — they need their own credentials. Audits currently run on GSC plus the live crawl.
 
-**P2 — 内容生产**
+**P2 — Content production**
 
-| 能力 | 位置 |
+| Capability | Location |
 |---|---|
-| brandVoice 配置（tone/audience/关键词/禁用词/字数区间） | `/sites/[siteId]/settings` |
-| 选题：从你自己「有曝光但排名差」的查询里挑，按预期价值排序 | `src/lib/ai/prompts/content.v1.ts` |
-| 大纲 → 正文 → 自检全链路，分步进度 | `src/lib/jobs/content.ts` |
-| 机械检查：关键词密度、meta 长度、标题层级、内链数、禁用词、近重复标题 | `src/lib/content/checks.ts` |
-| 草稿列表 + Markdown 编辑器（实时预览 + SEO 检查条） | `/sites/[siteId]/content` |
-| 月度 AI 花费看板与预算上限 | `/sites/[siteId]/settings` |
+| Brand voice configuration (tone, audience, keywords, forbidden terms, word-count range) | `/sites/[siteId]/settings` |
+| Topic selection drawn from *your own* queries that get impressions but rank badly, ordered by expected value | `src/lib/ai/prompts/content.v1.ts` |
+| Outline → body → self-check, with step-by-step progress | `src/lib/jobs/content.ts` |
+| Mechanical checks: keyword density, meta lengths, heading hierarchy, internal-link count, forbidden terms, near-duplicate titles | `src/lib/content/checks.ts` |
+| Draft list and Markdown editor (live preview + SEO bar) | `/sites/[siteId]/content` |
+| Monthly AI spend dashboard with a budget ceiling | `/sites/[siteId]/settings` |
 
-> 配图那步需要图像生成 API，目前正文里留 `{{IMAGE_1}}` 占位符不填充。发布目标（Shopify / GitHub）等对应连接接上才开放。
+> Illustration needs an image-generation API; for now the body keeps `{{IMAGE_1}}` placeholders unfilled. Publishing targets (Shopify / GitHub) unlock once those connections exist.
 
-## 快速开始
+## Quick start
 
 ```bash
 npm install
-npm run setup:env          # 生成 ENCRYPTION_KEY / SESSION_SECRET / POSTGRES_PASSWORD
+npm run setup:env          # generates ENCRYPTION_KEY / SESSION_SECRET / POSTGRES_PASSWORD
 ```
 
-数据库是 **PostgreSQL**。本地三选一（详见 [`docs/deployment.md`](./docs/deployment.md)）：用 compose 只起 `db` 服务、用 Neon 之类的托管 Postgres、或本机装一个。连接串填进 `.env` 的 `DATABASE_URL`，然后：
+The database is **PostgreSQL**. Locally you have three options (see [`docs/deployment.md`](./docs/deployment.md)): bring up only the `db` service with compose, use a hosted Postgres such as Neon, or install one on the machine. Put the connection string in `DATABASE_URL` in `.env`, then:
 
 ```bash
-npx prisma migrate deploy  # 建表
+npx prisma migrate deploy  # create the tables
 ```
 
-然后按 [`docs/google-oauth-setup.md`](./docs/google-oauth-setup.md) 拿到 Google OAuth 凭据，填进 `.env`：
+Then follow [`docs/google-oauth-setup.md`](./docs/google-oauth-setup.md) to get Google OAuth credentials and put them in `.env`:
 
 ```env
 GOOGLE_CLIENT_ID="...apps.googleusercontent.com"
@@ -63,87 +67,87 @@ GOOGLE_CLIENT_SECRET="GOCSPX-..."
 
 ```bash
 npm run dev                # http://localhost:3000
-npm run worker             # 另开一个终端：定时任务 + SEO 诊断
+npm run worker             # second terminal: scheduled jobs + SEO audits
 ```
 
-流程：`/login` → Continue with Google → `/connections` 勾一个 GSC 资源 → 自动回补 90 天 → 曲线页。
+The flow: `/login` → Continue with Google → pick a GSC property on `/connections` → 90 days backfill automatically → the charts.
 
-**worker 是独立进程**，负责定时任务和 SEO 诊断。不开的话曲线页照样能用（手动 Sync 是内联跑的），但数据不会自动更新，「Run audit」会一直排队——按钮会在 45 秒后告诉你 worker 没开。
+**The worker is a separate process** that runs scheduled jobs and SEO audits. Without it the charts still work (a manual Sync runs inline), but data won't refresh on its own and "Run audit" will sit in the queue — the button tells you the worker is down after 45 seconds.
 
-AI 诊断要配网关，见 [`docs/ai-gateway-setup.md`](./docs/ai-gateway-setup.md)。**不配也能跑**，规则引擎的发现一条不少，只是没有优先级排序和改写文案。
+AI auditing needs a gateway; see [`docs/ai-gateway-setup.md`](./docs/ai-gateway-setup.md). **It runs without one** — you get every rule-engine finding, just no prioritization or rewritten copy.
 
-### 国内网络：必须让 Node 走代理
+### Behind a proxy: Node needs an explicit flag
 
-浏览器能打开 Google **不代表服务端能**。授权页是浏览器访问的（走系统代理），但拿 code 换 token、以及后续所有 GSC API 调用都是 Node 发的，而 **Node 的 `fetch` 默认不读 `HTTP_PROXY`**，会直连超时。
+Your browser reaching Google **does not mean the server can**. The consent screen is loaded by the browser (which uses the system proxy), but exchanging the code for a token — and every GSC API call after it — is sent by Node, and **Node's `fetch` does not read `HTTP_PROXY` by default**. It connects directly and times out.
 
-`npm run dev` / `npm run start` 已经带上 `NODE_USE_ENV_PROXY=1`（需要 Node 24+），它让 Node 内建 fetch 使用 `HTTPS_PROXY` / `HTTP_PROXY`。所以：
+`npm run dev` / `npm run start` already set `NODE_USE_ENV_PROXY=1` (needs Node 24+), which makes Node's built-in fetch honour `HTTPS_PROXY` / `HTTP_PROXY`. So:
 
-- 在**设置了 `HTTPS_PROXY` 的 shell 里**启动，别用 IDE 的一键运行按钮，除非它继承了这些变量
-- 这个开关必须在进程启动前生效，**写进 `.env` 是没用的**
-- 改完 `package.json` 要**重启 dev server**，热重载不会重新读脚本
+- Start it **from a shell where `HTTPS_PROXY` is set** — not from an IDE run button, unless that button inherits the variables
+- The flag has to be in effect *before the process starts*; **putting it in `.env` does nothing**
+- After editing `package.json`, **restart the dev server** — hot reload does not re-read the scripts
 
-自检：
+Check it:
 
 ```bash
 curl http://localhost:3000/api/diagnostics/google
 ```
 
-期望 `"reachable": true` 且 `"nodeUsesEnvProxy": true`。如果 `reachable:false` 而 `nodeUsesEnvProxy:false`，就是上面这个问题。
+Expect `"reachable": true` and `"nodeUsesEnvProxy": true`. If `reachable` is false while `nodeUsesEnvProxy` is false, this is your problem.
 
-部署到墙外 VPS 时不设 `HTTPS_PROXY` 即可，开关自动变成空操作。
+On a VPS outside the restricted network, just leave `HTTPS_PROXY` unset and the flag becomes a no-op.
 
-### 不接 Google 先看界面
+### Seeing the interface without connecting Google
 
 ```bash
-npm run db:seed:demo       # 造 180 天合成数据，站点名 "Demo (synthetic data)"
+npm run db:seed:demo       # 180 days of synthetic data, site named "Demo (synthetic data)"
 ```
 
-数据全部是脚本生成的，不是真实 GSC 数据。清掉：`npm run db:reset`。
+All of it is script-generated, not real GSC data. Clear it with `npm run db:reset`.
 
-## 常用命令
+## Commands
 
-| 命令 | 作用 |
+| Command | What it does |
 |---|---|
 | `npm run dev` / `build` / `start` | Next.js |
-| `npm run worker` | 常驻 worker：定时任务 + 队列消费 |
-| `npm run ai:check` | 验证 AI 网关连通、模型、单次成本 |
+| `npm run worker` | Long-running worker: scheduled jobs + queue consumer |
+| `npm run ai:check` | Verifies AI gateway reachability, model, and per-call cost |
 | `npm run typecheck` / `lint` | TS + ESLint |
-| `npm test` | Node 自带 test runner，跑 `src/**/*.test.ts` |
-| `npm run db:migrate` | 建/改表 |
-| `npm run db:studio` | Prisma Studio 看数据 |
-| `npm run db:seed:demo` | 合成演示数据 |
-| `npm run db:reset` | 清库重建 |
-| `npx prisma migrate deploy` | 只应用已有迁移（生产） |
+| `npm test` | Node's built-in test runner over `src/**/*.test.ts` |
+| `npm run db:migrate` | Create/alter tables |
+| `npm run db:studio` | Browse data in Prisma Studio |
+| `npm run db:seed:demo` | Synthetic demo data |
+| `npm run db:reset` | Drop and rebuild |
+| `npx prisma migrate deploy` | Apply existing migrations only (production) |
 
-## 部署
+## Deployment
 
-见 [`docs/deployment.md`](./docs/deployment.md)。VPS + Docker Compose：
+See [`docs/deployment.md`](./docs/deployment.md). VPS + Docker Compose:
 
 ```bash
 docker compose --env-file .env.production up -d --build
 ```
 
-**Cloudflare Workers 跑不了这个应用**——常驻 worker 进程和 6.5 分钟的抓取任务都撞在 Workers 的模型上。文档里写了真要迁需要改什么。
+**Cloudflare Workers cannot run this application** — the long-running worker process and the 6.5-minute crawl jobs both collide with the Workers model. The docs spell out what a real migration would require.
 
-## 与 spec 的差异
+## Where this departs from the spec
 
-写在代码里的偏离，都是有理由的，不是漏做：
+Every deviation below is deliberate and reasoned, not an omission:
 
-1. ~~SQLite 而非 Postgres~~ **已按 spec 用 PostgreSQL**。JSON 列是真 jsonb、`scopes` 是 `text[]`、`provider` 是 enum。`GscDaily.date` 特意用 timestamp 而非 `@db.Date`——node-postgres 把 `DATE` 列按本地时区解析，在 +08:00 会把日期退一天，而日期是那张表主键的一部分。
-2. **登录 = Google 授权**，没有独立的邮箱密码登录。单人单 Workspace 场景下多一套密码是纯负担；`User.passwordHash` 留到多租户时再加。
-3. **队列用数据库，不是 BullMQ**。BullMQ 要 Redis，不想为这点量再加一个数据存储。`JobRun` 表加了 `status/runAfter/dedupeKey/attempts`，worker 轮询领取，用条件 `updateMany` 做锁、`dedupeKey` 唯一索引做定时幂等、`claimedAt` 超时回收僵尸任务。语义和 spec §8 一致，要换 BullMQ 只需重写 `src/lib/jobs/queue.ts` —— 调用方只见 `enqueue`，worker 只见 `claimNext`。
-   手动 Sync 仍然内联跑（十几秒，用户点了就想看到结果）；SEO 诊断走队列（要几分钟）。
-4. **抓取很慢，这是故意的**。50 个页面并发 2、每次间隔 300ms、429/503 按 `Retry-After` 退避重试。在 geeujade.com（Shopify）上一次诊断约 6.5 分钟。第一版并发 4 无延迟，结果被站点限流，产出 14 条「页面无法访问」的**假阳性**——报告说页面坏了，其实是我把它请求崩了。现在 429 收敛成一条 low 级别的「本次抓取被限流，这些页没审到」，和真正的 404 分开。
-5. **OAuth state 存签名 cookie 而非 Redis**。10 分钟 TTL、httpOnly、一次性消费，语义与 spec 一致，少一个依赖。
-6. **不做双 Y 轴曲线**。spec §5.1 画的是「左点击右曝光」，但两条不同量纲的线共用一张图时，交叉点看起来有意义、实际是缩放造成的假象。改成每个指标一张小图（small multiples），共享 X 轴，虚线叠加上一周期。指标 chip 可切换 CTR / 平均排名。
-7. **聚合在 JS 里做，不是 SQL**。每个维度每个同步窗口上限 25k 行，读取量很小。数据量真涨起来了再下推到 SQL。
-8. **AI 走官方 SDK，不走 OpenAI 兼容 shim**。spec §6.1 写的是 `/v1` 中转，这里用 `@anthropic-ai/sdk` + `baseURL` 指向中转的 Anthropic 端点（New API / LiteLLM 都提供）。这样结构化输出、adaptive thinking、refusal 处理都还在；用 OpenAI shim 会全丢。**代价是你的中转必须有 `/v1/messages`，不能只有 `/v1/chat/completions`** —— 只有后者的话告诉我，我改用 tool_use 兜底。
-9. **模型默认 `claude-opus-5`**，不是 spec 写的 `claude-sonnet-4-6`（那个 ID 还有效，只是不是当前最强）。全部走环境变量，改一行就能降级；`docs/ai-gateway-setup.md` 里有成本对照。
-10. **重复检测用 token 重合度，不是 embedding**。spec §5.3 写的是 embedding 余弦 > 0.85，那需要额外的 embedding API。现在用标题 token 的 Jaccard 重合度（带朴素复数归并）> 0.6 判定近重复。够用且零额外依赖，接了 embedding 再换。
-11. **配图链路空着**。正文里生成 `{{IMAGE_1}}` 占位符但不填充——图像生成 API 未配置。占位符会在 SEO 检查条里显示为待填槽位。
+1. ~~SQLite instead of Postgres~~ — **now PostgreSQL, per the spec**. JSON columns are real `jsonb`, `scopes` is `text[]`, `provider` is an enum. `GscDaily.date` is deliberately a timestamp rather than `@db.Date`: node-postgres parses `DATE` columns in the local timezone, which at +08:00 shifts the day backwards — and the date is part of that table's primary key.
+2. **Signing in *is* the Google authorization.** There is no separate email/password login. For a single-person, single-workspace tool a second credential is pure overhead; `User.passwordHash` waits for multi-tenancy.
+3. **The queue is the database, not BullMQ.** BullMQ needs Redis, and this volume doesn't justify another datastore. `JobRun` gained `status/runAfter/dedupeKey/attempts`; the worker polls and claims with a conditional `updateMany` as the lock, a unique index on `dedupeKey` for scheduling idempotence, and `claimedAt` to reclaim zombie jobs. The semantics match spec §8 — swapping in BullMQ means rewriting only `src/lib/jobs/queue.ts`, since callers see `enqueue` and the worker sees `claimNext`.
+   Manual Sync still runs inline (it takes seconds and the user clicked it expecting a result); SEO audits go through the queue (minutes).
+4. **The crawler is slow on purpose.** 50 pages at concurrency 2, 300 ms apart, backing off on 429/503 per `Retry-After`. On geeujade.com (Shopify) one audit takes about 6.5 minutes. The first version used concurrency 4 with no delay, got rate-limited, and produced 14 **false** "page unreachable" findings — the report said pages were broken when in fact I had hammered the site. Now 429s collapse into a single low-severity "this crawl was rate-limited, these pages weren't audited", kept separate from genuine 404s.
+5. **OAuth state lives in a signed cookie, not Redis.** 10-minute TTL, httpOnly, consumed once — same semantics as the spec, one fewer dependency.
+6. **No dual-axis chart.** Spec §5.1 draws clicks on the left axis and impressions on the right, but two different scales on shared marks make the crossings *look* meaningful when they are an artefact of the scaling. Instead: one small panel per metric, shared x-axis, previous period overlaid as a dashed line. Metric chips toggle CTR and average position.
+7. **Aggregation happens in JS, not SQL.** Each dimension caps at 25k rows per sync window, so the read volume is small. It gets pushed down to SQL when the data actually grows.
+8. **AI goes through the official SDK, not an OpenAI-compatible shim.** Spec §6.1 describes a `/v1` relay; this uses `@anthropic-ai/sdk` with `baseURL` pointed at the relay's Anthropic endpoint (New API and LiteLLM both provide one). That keeps structured output, adaptive thinking and refusal handling — an OpenAI shim loses all three. **The cost is that your relay must expose `/v1/messages`, not just `/v1/chat/completions`** — if yours only has the latter, say so and I'll fall back to tool_use.
+9. **The default model is `claude-opus-5`**, not the spec's `claude-sonnet-4-6` (still a valid ID, just no longer the strongest). It's all environment-driven, so downgrading is a one-line change; `docs/ai-gateway-setup.md` has the cost comparison.
+10. **Duplicate detection uses token overlap, not embeddings.** Spec §5.3 asks for embedding cosine > 0.85, which needs a separate embedding API. This uses Jaccard overlap of title tokens (with naive plural folding) > 0.6 for near-duplicates. Good enough with zero extra dependencies; swap it once embeddings are wired up.
+11. **The illustration path is empty.** Bodies generate `{{IMAGE_1}}` placeholders but nothing fills them — no image-generation API is configured. The placeholders surface as unfilled slots in the SEO bar.
 
-## 下一步（按 spec 的交付计划）
+## Next up (following the spec's delivery plan)
 
-- **P1 剩余**：Cloudflare scoped token（zone 状态 / DNS / 缓存清除）、GitHub App（读代码进诊断证据包、修复以 PR 交付）
-- **P3**：Shopify OAuth、blog 发布、页面 SEO 巡检
-- 诊断的 `autoFixable` 发现目前只展示不执行——落点是 Shopify `pageUpdate` 和 GitHub PR，等那两个连接接上才能一键采纳
+- **Remaining P1**: Cloudflare scoped token (zone status / DNS / cache purge), GitHub App (read code into the audit evidence pack, deliver fixes as PRs)
+- **P3**: Shopify OAuth, blog publishing, page SEO sweeps
+- Audit findings marked `autoFixable` are displayed but not applied — they land as Shopify `pageUpdate` and GitHub PRs, so one-click adoption waits on those two connections

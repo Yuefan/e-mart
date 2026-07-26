@@ -7,6 +7,8 @@ import {
   getTotals,
   previousPeriod,
 } from "@/lib/gsc-queries";
+import { getT } from "@/lib/i18n";
+import { fmt } from "@/lib/i18n/format";
 import { prisma } from "@/lib/prisma";
 import { describeRange, resolveRange } from "@/lib/range";
 import { BreakdownTable } from "@/components/breakdown-table";
@@ -33,6 +35,7 @@ function toSearchParams(input: Record<string, string | string[] | undefined>) {
 
 export default async function OverviewPage({ params, searchParams }: PageProps) {
   const user = await requireUser();
+  const { t } = await getT();
   const { siteId } = await params;
 
   const site = await prisma.site.findFirst({
@@ -93,7 +96,10 @@ export default async function OverviewPage({ params, searchParams }: PageProps) 
           </p>
           {lastSync ? (
             <p className="mt-1 text-xs text-muted">
-              Last sync {lastSync.startedAt.toISOString().replace("T", " ").slice(0, 16)} UTC ·{" "}
+              {fmt(t.overview.lastSync, {
+                when: lastSync.startedAt.toISOString().replace("T", " ").slice(0, 16),
+              })}{" "}
+              ·{" "}
               <span className={lastSync.status === "failed" ? "text-neg" : undefined}>
                 {lastSync.status}
               </span>
@@ -103,15 +109,15 @@ export default async function OverviewPage({ params, searchParams }: PageProps) 
 
         <div className="flex items-center gap-3">
           <RangeTabs basePath={basePath} active={preset} />
-          <SyncButton siteId={siteId} days={90} label="Sync" />
+          <SyncButton siteId={siteId} days={90} label={t.overview.sync} />
         </div>
       </header>
 
       {!hasData ? (
         <Card>
           <EmptyState
-            title="No Search Console data stored yet"
-            description="Search Console reports run about two days behind. Run a sync to pull the last 90 days into the dashboard."
+            title={t.overview.noDataTitle}
+            description={t.overview.noDataHint}
             action={<SyncButton siteId={siteId} days={90} variant="primary" />}
           />
         </Card>
@@ -121,8 +127,8 @@ export default async function OverviewPage({ params, searchParams }: PageProps) 
 
           <Card>
             <CardHeader
-              title="Search performance"
-              hint="One panel per metric — a shared axis across different scales would misrepresent the crossings"
+              title={t.overview.searchPerformance}
+              hint={t.overview.searchPerformanceHint}
             />
             <TrafficChart
               series={series}
@@ -136,17 +142,17 @@ export default async function OverviewPage({ params, searchParams }: PageProps) 
           <div className="grid gap-3 lg:grid-cols-2">
             <Card>
               <CardHeader
-                title="Countries"
+                title={t.overview.countries}
                 hint={
                   countries.length > 4
-                    ? `Top 4 by clicks; the remaining ${countries.length - 4} are grouped`
-                    : "Share of clicks"
+                    ? fmt(t.overview.countriesGrouped, { n: countries.length - 4 })
+                    : t.overview.shareOfClicks
                 }
               />
               <ShareDonut rows={countries} dimension="country" />
             </Card>
             <Card>
-              <CardHeader title="Devices" hint="Share of clicks" />
+              <CardHeader title={t.overview.devices} hint={t.overview.shareOfClicks} />
               <ShareDonut rows={devices} dimension="device" />
             </Card>
           </div>
@@ -155,16 +161,16 @@ export default async function OverviewPage({ params, searchParams }: PageProps) 
 
           <div className="grid gap-3 lg:grid-cols-2">
             <BreakdownTable
-              title="Top queries"
+              title={t.overview.topQueries}
               dimension="query"
               rows={queries}
-              hint={`Top ${queries.length} by clicks`}
+              hint={fmt(t.overview.topByClicks, { n: queries.length })}
             />
             <BreakdownTable
-              title="Top pages"
+              title={t.overview.topPages}
               dimension="page"
               rows={pages}
-              hint={`Top ${pages.length} by clicks`}
+              hint={fmt(t.overview.topByClicks, { n: pages.length })}
             />
           </div>
         </div>

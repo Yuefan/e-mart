@@ -7,6 +7,8 @@ import type {
   BoundProperty,
   GoogleAccountSummary,
 } from "@/lib/integrations/google/properties";
+import { fmt } from "@/lib/i18n/format";
+import { useT } from "./i18n-provider";
 import { Badge, EmptyState, buttonClass } from "./ui";
 
 const BACKFILL_DAYS = 90;
@@ -28,6 +30,7 @@ export function PropertyPicker({
   error?: string;
 }) {
   const router = useRouter();
+  const t = useT();
   const [busy, setBusy] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [isRefreshing, startTransition] = useTransition();
@@ -35,7 +38,7 @@ export function PropertyPicker({
   if (error) {
     return (
       <EmptyState
-        title="Could not read your Search Console properties"
+        title={t.connections.couldNotRead}
         description={error}
         action={
           <button
@@ -44,7 +47,7 @@ export function PropertyPicker({
             disabled={isRefreshing}
             className={buttonClass("secondary")}
           >
-            {isRefreshing ? "Retrying…" : "Try again"}
+            {isRefreshing ? t.connections.retrying : t.common.retry}
           </button>
         }
       />
@@ -54,10 +57,10 @@ export function PropertyPicker({
   if (properties.length === 0 && accounts.every((account) => !account.error)) {
     return (
       <EmptyState
-        title="No properties on these Google accounts"
-        description={`${accounts
-          .map((a) => a.accountLabel)
-          .join(", ")} has no verified Search Console properties. Verify a site in Search Console first, then reload this page.`}
+        title={t.connections.noPropertiesTitle}
+        description={fmt(t.connections.noPropertiesHint, {
+          accounts: accounts.map((a) => a.accountLabel).join(", "),
+        })}
       />
     );
   }
@@ -76,7 +79,7 @@ export function PropertyPicker({
         }),
       });
       const body = await created.json();
-      if (!created.ok) throw new Error(body?.error ?? "Could not create the site");
+      if (!created.ok) throw new Error(body?.error ?? t.connections.createFailed);
 
       const siteId: string = body.site.id;
 
@@ -86,13 +89,13 @@ export function PropertyPicker({
       });
       if (!synced.ok) {
         const detail = await synced.json().catch(() => ({}));
-        throw new Error(detail?.error ?? "Site created, but the first sync failed");
+        throw new Error(detail?.error ?? t.connections.firstSyncFailed);
       }
 
       router.push(`/sites/${siteId}/overview`);
       router.refresh();
     } catch (e) {
-      setActionError(e instanceof Error ? e.message : "Something went wrong");
+      setActionError(e instanceof Error ? e.message : t.connections.genericError);
       setBusy(null);
     }
   }
@@ -109,10 +112,10 @@ export function PropertyPicker({
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-panel-alt/50 px-5 py-2">
                 <p className="text-xs font-medium">{account.accountLabel}</p>
                 {account.error ? (
-                  <Badge tone="negative">needs re-authorization</Badge>
+                  <Badge tone="negative">{t.connections.needsReauth}</Badge>
                 ) : (
                   <span className="text-xs text-muted">
-                    {owned.length} propert{owned.length === 1 ? "y" : "ies"}
+                    {fmt(t.connections.propertyCount, { n: owned.length }, owned.length)}
                   </span>
                 )}
               </div>
@@ -121,7 +124,7 @@ export function PropertyPicker({
             {account.error ? (
               <p className="px-5 py-3 text-xs text-neg">{account.error}</p>
             ) : owned.length === 0 ? (
-              <p className="px-5 py-3 text-xs text-muted">No verified properties.</p>
+              <p className="px-5 py-3 text-xs text-muted">{t.connections.noProperties}</p>
             ) : (
               <ul className="divide-y divide-line/60">
                 {owned.map((property) => (
@@ -145,7 +148,7 @@ export function PropertyPicker({
                         href={`/sites/${property.siteId}/overview`}
                         className={buttonClass("secondary")}
                       >
-                        Open
+                        {t.common.open}
                       </Link>
                     ) : (
                       <button
@@ -154,7 +157,9 @@ export function PropertyPicker({
                         disabled={busy !== null}
                         className={buttonClass("primary")}
                       >
-                        {busy === property.siteUrl ? "Adding + syncing…" : "Add as site"}
+                        {busy === property.siteUrl
+                          ? t.connections.addingSyncing
+                          : t.connections.addAsSite}
                       </button>
                     )}
                   </li>

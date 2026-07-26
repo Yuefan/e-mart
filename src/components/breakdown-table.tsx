@@ -1,4 +1,5 @@
 import type { BreakdownDimension, BreakdownRow } from "@/lib/gsc-queries";
+import { getT } from "@/lib/i18n";
 import { cn, formatNumber, formatPercent, formatPosition, shortenUrl } from "@/lib/utils";
 import { Card, CardHeader } from "./ui";
 
@@ -21,7 +22,7 @@ function renderLabel(dimension: BreakdownDimension, value: string) {
   return value;
 }
 
-export function BreakdownTable({
+export async function BreakdownTable({
   title,
   dimension,
   rows,
@@ -32,24 +33,30 @@ export function BreakdownTable({
   rows: BreakdownRow[];
   hint?: string;
 }) {
+  const { t } = await getT();
+
   return (
     <Card className="overflow-hidden">
       <CardHeader title={title} hint={hint} />
       {rows.length === 0 ? (
-        <p className="px-5 py-10 text-center text-sm text-muted">No data in this window.</p>
+        <p className="px-5 py-10 text-center text-sm text-muted">{t.overview.noDataWindow}</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[520px] text-sm">
             <thead>
               <tr className="border-b border-line text-xs text-muted">
                 <th className="px-5 py-2 text-left font-medium">
-                  {dimension === "query" ? "Query" : dimension === "page" ? "Page" : "Value"}
+                  {dimension === "query"
+                    ? t.overview.query
+                    : dimension === "page"
+                      ? t.overview.pageCol
+                      : t.overview.value}
                 </th>
-                <th className="px-3 py-2 text-right font-medium">Clicks</th>
+                <th className="px-3 py-2 text-right font-medium">{t.overview.clicks}</th>
                 <th className="px-3 py-2 text-right font-medium">Δ</th>
-                <th className="px-3 py-2 text-right font-medium">Impr.</th>
-                <th className="px-3 py-2 text-right font-medium">CTR</th>
-                <th className="px-5 py-2 text-right font-medium">Pos.</th>
+                <th className="px-3 py-2 text-right font-medium">{t.overview.impr}</th>
+                <th className="px-3 py-2 text-right font-medium">{t.overview.ctr}</th>
+                <th className="px-5 py-2 text-right font-medium">{t.overview.pos}</th>
               </tr>
             </thead>
             <tbody>

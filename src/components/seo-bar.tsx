@@ -10,7 +10,9 @@ import {
   analyzeMarkdown,
   keywordDensity,
 } from "@/lib/content/checks";
+import { fmt } from "@/lib/i18n/format";
 import { cn } from "@/lib/utils";
+import { useT } from "./i18n-provider";
 
 type Verdict = "good" | "warn" | "bad";
 
@@ -63,6 +65,8 @@ export function SeoBar({
   siteDomain: string;
   wordCountRange: [number, number];
 }) {
+  const t = useT();
+  const b = t.content.seoBar;
   const stats = analyzeMarkdown(bodyMd, siteDomain);
   const density = keywordDensity(bodyMd, targetKeyword);
   const [minWords, maxWords] = wordCountRange;
@@ -98,57 +102,64 @@ export function SeoBar({
   return (
     <div className="flex flex-wrap gap-x-6 gap-y-3 border-b border-line bg-panel-alt/50 px-5 py-3">
       <Metric
-        label="Words"
+        label={b.words}
         value={String(stats.wordCount)}
         verdict={wordVerdict}
-        detail={`Target ${minWords}-${maxWords} words.`}
+        detail={fmt(b.wordTarget, { min: minWords, max: maxWords })}
       />
       <Metric
-        label="Keyword"
+        label={b.keyword}
         value={targetKeyword ? `${(density * 100).toFixed(2)}%` : "—"}
         verdict={densityVerdict}
         detail={
           targetKeyword
-            ? `Density of "${targetKeyword}". Healthy range ${(KEYWORD_DENSITY_MIN * 100).toFixed(1)}-${(KEYWORD_DENSITY_MAX * 100).toFixed(1)}%.`
-            : "No target keyword set."
+            ? fmt(b.densityOf, {
+                kw: targetKeyword,
+                min: (KEYWORD_DENSITY_MIN * 100).toFixed(1),
+                max: (KEYWORD_DENSITY_MAX * 100).toFixed(1),
+              })
+            : b.noKeyword
         }
       />
       <Metric
-        label="Meta title"
+        label={b.metaTitle}
         value={`${metaTitle.length}/${META_TITLE_MAX}`}
         verdict={titleVerdict}
-        detail={`Truncates in results past ${META_TITLE_MAX} characters.`}
+        detail={fmt(b.titleTruncates, { max: META_TITLE_MAX })}
       />
       <Metric
-        label="Meta desc"
+        label={b.metaDesc}
         value={`${metaDesc.length}/${META_DESC_MAX}`}
         verdict={descVerdict}
-        detail={`Aim for ${META_DESC_MIN}-${META_DESC_MAX} characters.`}
+        detail={fmt(b.descAim, { min: META_DESC_MIN, max: META_DESC_MAX })}
       />
       <Metric
-        label="Headings"
+        label={b.headings}
         value={String(stats.headings.length)}
         verdict={sectionVerdict}
-        detail={`Longest run without a heading: ${stats.longestSectionWords} words (cap ${WORDS_PER_HEADING_MAX}).`}
+        detail={fmt(b.longestRun, {
+          words: stats.longestSectionWords,
+          cap: WORDS_PER_HEADING_MAX,
+        })}
       />
       <Metric
-        label="Internal links"
+        label={b.internalLinks}
         value={String(stats.internalLinks)}
         verdict={linkVerdict}
-        detail="2-4 internal links is the target."
+        detail={b.linkTarget}
       />
       <Metric
-        label="Image alt"
+        label={b.imageAlt}
         value={
           stats.imagesWithAlt + stats.imagesWithoutAlt === 0
-            ? `${stats.imagePlaceholders.length} slots`
+            ? fmt(b.slots, { n: stats.imagePlaceholders.length })
             : `${stats.imagesWithAlt}/${stats.imagesWithAlt + stats.imagesWithoutAlt}`
         }
         verdict={altVerdict}
         detail={
           stats.imagePlaceholders.length > 0
-            ? `${stats.imagePlaceholders.length} placeholder(s) still to fill.`
-            : "Every image should carry alt text."
+            ? fmt(b.placeholders, { n: stats.imagePlaceholders.length })
+            : b.altEvery
         }
       />
     </div>

@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { EMPTY_BRAND_VOICE, parseBrandVoice } from "@/lib/brand-voice";
 import { runMechanicalChecks } from "@/lib/content/checks";
+import { getT } from "@/lib/i18n";
+import { fmt } from "@/lib/i18n/format";
 import { arrayField } from "@/lib/json";
 import { prisma } from "@/lib/prisma";
 import { ArticleEditor } from "@/components/article-editor";
@@ -17,6 +19,7 @@ function parseUnsupportedClaims(checks: unknown): string[] {
 
 export default async function ArticlePage({ params }: PageProps) {
   const user = await requireUser();
+  const { t } = await getT();
   const { siteId, articleId } = await params;
 
   const article = await prisma.article.findFirst({
@@ -49,17 +52,20 @@ export default async function ArticlePage({ params }: PageProps) {
           href={`/sites/${siteId}/content`}
           className="text-xs text-muted hover:text-fg hover:underline"
         >
-          ← Content
+          {t.content.editor.backToContent}
         </Link>
         <h1 className="mt-1.5 text-lg font-semibold">{article.title}</h1>
         <p className="mt-0.5 text-sm text-muted">
-          {article.site.name} · created {article.createdAt.toISOString().slice(0, 10)}
+          {fmt(t.content.editor.siteAndDate, {
+            site: article.site.name,
+            date: article.createdAt.toISOString().slice(0, 10),
+          })}
         </p>
       </header>
 
       {unsupportedClaims.length > 0 ? (
         <div className="mb-4 rounded-xl border border-accent/40 bg-panel px-5 py-3.5">
-          <p className="text-sm font-medium">Claims to verify before publishing</p>
+          <p className="text-sm font-medium">{t.content.editor.claimsToVerify}</p>
           <ul className="mt-1.5 list-disc space-y-1 pl-5 text-sm text-muted">
             {unsupportedClaims.map((claim) => (
               <li key={claim}>{claim}</li>
