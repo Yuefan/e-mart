@@ -13,6 +13,7 @@ import { BreakdownTable } from "@/components/breakdown-table";
 import { InsightCards } from "@/components/insight-cards";
 import { KpiCards } from "@/components/kpi-cards";
 import { RangeTabs } from "@/components/range-tabs";
+import { ShareDonut } from "@/components/share-donut";
 import { SyncButton } from "@/components/sync-button";
 import { TrafficChart } from "@/components/traffic-chart";
 import { Card, CardHeader, EmptyState } from "@/components/ui";
@@ -62,7 +63,11 @@ export default async function OverviewPage({ params, searchParams }: PageProps) 
     getTotals(siteId, previous.from, previous.to),
     getBreakdown(siteId, "query", from, to, { limit: 25 }),
     getBreakdown(siteId, "page", from, to, { limit: 25 }),
-    getBreakdown(siteId, "country", from, to, { limit: 10 }),
+    // Unlimited: the donut shows each country's share of the whole, so a
+    // truncated list would compute those percentages against a partial total.
+    // This site reports 124 countries; taking the top ten would silently drop
+    // the rest out of the denominator.
+    getBreakdown(siteId, "country", from, to, { limit: 500 }),
     getBreakdown(siteId, "device", from, to, { limit: 10 }),
     getInsights(siteId, from, to),
     prisma.jobRun.findFirst({
@@ -140,8 +145,21 @@ export default async function OverviewPage({ params, searchParams }: PageProps) 
               rows={pages}
               hint={`Top ${pages.length} by clicks`}
             />
-            <BreakdownTable title="Countries" dimension="country" rows={countries} />
-            <BreakdownTable title="Devices" dimension="device" rows={devices} />
+            <Card>
+              <CardHeader
+                title="Countries"
+                hint={
+                  countries.length > 4
+                    ? `Top 4 by clicks; the remaining ${countries.length - 4} are grouped`
+                    : "Share of clicks"
+                }
+              />
+              <ShareDonut rows={countries} dimension="country" />
+            </Card>
+            <Card>
+              <CardHeader title="Devices" hint="Share of clicks" />
+              <ShareDonut rows={devices} dimension="device" />
+            </Card>
           </div>
         </div>
       )}

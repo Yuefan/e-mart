@@ -30,6 +30,17 @@
   --clicks: #2a78d6;
   --impressions: #1baf7a;
   --grid: #e6e8ee;
+
+  /* Share ramp: one hue, darkest = largest slice. Ordinal rather than
+     categorical because the slices are sorted by size, which sidesteps the
+     pairwise-discrimination limit that caps categorical palettes at three
+     all-pairs-safe slots. Validated with --ordinal; six steps failed the
+     adjacent-lightness gate, which is why the donut folds to five. */
+  --share-0: #0d366b;
+  --share-1: #1c5cab;
+  --share-2: #2a78d6;
+  --share-3: #5598e7;
+  --share-4: #86b6ef;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -48,6 +59,14 @@
     --clicks: #3987e5;
     --impressions: #199e70;
     --grid: #222833;
+
+    /* Same hue re-stepped for the dark surface: lightest = largest slice, so
+       "more" still reads as more prominent. */
+    --share-0: #9ec5f4;
+    --share-1: #6da7ec;
+    --share-2: #3987e5;
+    --share-3: #256abf;
+    --share-4: #184f95;
   }
 }
 
