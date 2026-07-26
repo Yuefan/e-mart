@@ -64,6 +64,38 @@ export function AuditButton({ siteId }: { siteId: string }) {
     return () => clearInterval(timer);
   }, [state.kind, poll]);
 
+  /**
+   * Re-attach to an audit that is already in flight.
+   *
+   * The run lives in the worker, not in this component, so a remount — coming
+   * back to the page, or a second tab — has no idea one is going. Without this
+   * the button reads "Run audit" while an audit is actually running, and
+   * pressing it appears to do nothing, because the server hands back the
+   * existing job instead of starting another.
+   */
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const res = await fetch(`/api/sites/${siteId}/seo/audit`);
+        if (!res.ok) return; // nothing in flight is the common case; stay idle
+        const body = (await res.json()) as { active: (JobState & { id: string }) | null };
+        if (cancelled || !body.active) return;
+
+        jobIdRef.current = body.active.id;
+        setState({ kind: "running", job: body.active });
+      } catch {
+        // A failed probe should not surface an error on a page the user has
+        // not acted on yet — the button simply stays idle.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [siteId]);
+
   async function start() {
     setState({ kind: "running", job: null });
     try {

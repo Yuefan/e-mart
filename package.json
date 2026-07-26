@@ -16,7 +16,8 @@
     "db:studio": "prisma studio",
     "db:seed:demo": "node scripts/seed-demo.mjs",
     "db:reset": "prisma migrate reset",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "ai:smoke": "cross-env NODE_USE_ENV_PROXY=1 tsx scripts/ai-smoke.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",

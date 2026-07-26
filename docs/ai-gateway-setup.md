@@ -20,30 +20,67 @@ SEO 诊断分两层：**规则引擎**（确定性检查，不用 AI）和 **AI 
 | LiteLLM | `/anthropic/v1/messages` | `AI_BASE_URL` 填到 `/anthropic` 为止 |
 | 官方直连 | `https://api.anthropic.com` | `AI_BASE_URL` 留空即可 |
 
-> 如果你的中转**只有** OpenAI 格式，告诉我，我需要换一套实现（会损失结构化输出，得改用 tool_use 兜底）。
+> 如果你的中转**只有** OpenAI 格式（只有 `/v1/chat/completions`），现在还用不了，需要另写一层适配。
 
-## 2. 填 .env
+## 2. 结构化输出：第三方端点必须改成 tool 模式
+
+**这是接第三方端点最容易踩的坑。**
+
+代码默认用 Anthropic 的 `output_config` 约束输出。除了 Anthropic 自己，其他兼容端点**会接受这个字段然后直接忽略它**——返回 200，但内容是散文不是 JSON。于是每次 AI 调用都卡在 schema 校验上，报错长得像模型能力问题，实际是配置问题。
+
+解决办法是改用强制 tool call：
 
 ```env
-# 留空 = 直连 api.anthropic.com；国内需要中转就填中转地址
-AI_BASE_URL="https://your-relay.example.com"
-AI_API_KEY="sk-xxxx"
+AI_STRUCTURED_MODE="tool"
+```
 
+tool calling 是这些端点确实实现了的部分，结果照样是结构化对象。
+
+| 端点 | AI_STRUCTURED_MODE |
+|---|---|
+| Anthropic 官方 | `native`（默认，不用填） |
+| New API / LiteLLM 转 Claude | `native` |
+| DeepSeek | `tool` |
+
+## 3. 填 .env
+
+Anthropic 官方：
+
+```env
+AI_BASE_URL=""
+AI_API_KEY="sk-ant-xxxx"
 AI_MODEL_ANALYSIS="claude-opus-5"
 AI_MODEL_FAST="claude-haiku-4-5"
 AI_EFFORT="medium"
 AI_MAX_MONTHLY_USD="50"
 ```
 
-改完**重启 worker**（`npm run worker`）——环境变量只在启动时读。
+DeepSeek：
 
-## 3. 验证
-
-```bash
-npm run ai:check
+```env
+AI_BASE_URL="https://api.deepseek.com/anthropic"
+AI_API_KEY="sk-xxxx"
+AI_STRUCTURED_MODE="tool"
+AI_MODEL_ANALYSIS="deepseek-v4-pro"
+AI_MODEL_FAST="deepseek-v4-flash"
+AI_MAX_MONTHLY_USD="5"
 ```
 
-会发一个最小请求，报告能否连通、用的哪个模型、这次花了多少钱。
+DeepSeek 的两个注意点：
+
+1. **`deepseek-chat` / `deepseek-reasoner` 已于 2026-07-24 弃用**，要写 `deepseek-v4-pro` / `deepseek-v4-flash`。
+2. 这两个模型默认开思考模式，而思考模式**不接受指定名字的 `tool_choice`**（会报 `Thinking mode does not support this tool_choice`）。代码用的是 `tool_choice: {type:"any"}`，只挂一个工具，效果相同但两边都能过。
+
+改完**重启 worker**（`npm run worker`）——环境变量只在启动时读。
+
+## 4. 验证
+
+```bash
+npm run ai:check    # 能不能连通
+npm run ai:smoke    # 结构化输出对不对（用真实的诊断 schema 跑一次）
+```
+
+`ai:check` 只证明网络通。**`ai:smoke` 才是关键的那个**——它用真实的 SEO 诊断 schema 发一次请求，确认返回的是能通过校验的结构化对象。换端点或改 `AI_STRUCTURED_MODE` 之后都应该跑一次。
 
 ---
 
