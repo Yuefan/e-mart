@@ -1,5 +1,19 @@
 @import "tailwindcss";
 
+/*
+ * Palette derived from the ROARLAND mark: red #e2211c, grey #888c8d.
+ *
+ * The red does double duty as the accent and as the negative state. That is
+ * deliberate rather than lazy — pairing it with a separate warning colour was
+ * tried first and the dataviz validator rejected every candidate: brand red
+ * against orange measured ΔE 3.4 under protanopia, well under the floor. Since
+ * an accent and an error state rarely sit side by side, sharing the hue is
+ * safer than shipping two reds nobody can distinguish.
+ *
+ * Chart series 2 moved from orange to aqua for the same reason: orange against
+ * the brand red failed at ΔE 4.4 in dark mode. Blue + aqua + red passes
+ * all-pairs in both modes.
+ */
 :root {
   --bg: #f7f8fa;
   --panel: #ffffff;
@@ -7,13 +21,14 @@
   --line: #e3e6ec;
   --fg: #10131a;
   --muted: #6b7280;
-  --accent: #4f46e5;
-  --accent-soft: #eef2ff;
+  /* Brand red, straight off the logo. */
+  --accent: #e2211c;
+  --accent-soft: #fdeceb;
   --pos: #12805c;
-  --neg: #c2410c;
-  /* Categorical slots 1 & 2, validated against this surface (see dataviz). */
+  --neg: #e2211c;
+  /* Categorical slots, validated all-pairs against the accent (see dataviz). */
   --clicks: #2a78d6;
-  --impressions: #eb6834;
+  --impressions: #1baf7a;
   --grid: #e6e8ee;
 }
 
@@ -25,13 +40,13 @@
     --line: #242a35;
     --fg: #e8eaef;
     --muted: #8b94a5;
-    --accent: #818cf8;
-    --accent-soft: #1b1f34;
+    /* Brand red lifted for the dark surface; the logo value is too dense here. */
+    --accent: #f0564f;
+    --accent-soft: #2a1614;
     --pos: #34d399;
-    --neg: #fb923c;
-    /* Same two hues, re-stepped for the dark surface. */
+    --neg: #f0564f;
     --clicks: #3987e5;
-    --impressions: #d95926;
+    --impressions: #199e70;
     --grid: #222833;
   }
 }

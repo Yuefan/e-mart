@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { isGoogleConfigured } from "@/lib/env";
 import { googleRedirectUri } from "@/lib/integrations/google/oauth";
+import { Brand } from "@/components/brand";
 import { GoogleConnectButton } from "@/components/google-connect-button";
 import { Card } from "@/components/ui";
 
@@ -33,8 +34,8 @@ export default async function LoginPage({
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6">
       <div className="mb-8">
-        <h1 className="text-xl font-semibold">AI Marketing Dashboard</h1>
-        <p className="mt-1 text-sm text-muted">
+        <Brand size="lg" />
+        <p className="mt-3 text-sm text-muted">
           Sign in with the Google account that owns your Search Console properties.
         </p>
       </div>

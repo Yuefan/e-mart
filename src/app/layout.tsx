@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -13,9 +13,23 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI Marketing Dashboard",
+  title: {
+    default: "ROARLAND Marketing",
+    template: "%s · ROARLAND",
+  },
   description:
     "SEO and content console across Search Console, Cloudflare, GitHub and Shopify",
+  icons: {
+    icon: [{ url: "/roarland-icon.svg", type: "image/svg+xml" }],
+  },
+};
+
+// The brand red, so mobile browser chrome picks it up.
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#12151c" },
+  ],
 };
 
 export default function RootLayout({

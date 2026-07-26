@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 960" role="img" aria-label="ROARLAND">
+  <title>ROARLAND</title>
+  <!-- Fixed-colour variant for favicons and anywhere currentColor is not
+       inherited. The mark reads on both light and dark browser chrome. -->
+  <g fill="#888c8d">
+    <path d="M0 0 H480 L640 160 V320 H400 V160 H240 V320 H0 Z" />
+    <path d="M0 600 H240 V960 H0 Z" />
+    <path d="M400 600 H480 L640 760 V960 H400 Z" />
+  </g>
+  <rect x="0" y="440" width="640" height="80" fill="#e2211c" />
+</svg>

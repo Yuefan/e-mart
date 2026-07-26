@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { Brand } from "./brand";
 import { buttonClass } from "./ui";
 
 export type TopBarUser = {
@@ -77,8 +78,10 @@ export function TopBar({
 
   return (
     <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-4 border-b border-line bg-panel/95 px-6 backdrop-blur">
-      <Link href="/" className="text-sm font-semibold md:hidden">
-        AI Marketing
+      {/* The sidebar carries the brand above md; below that it is hidden, so
+          the top bar becomes the only place the mark appears. */}
+      <Link href="/" className="md:hidden">
+        <Brand size="sm" />
       </Link>
       <div className="hidden md:block" />
 

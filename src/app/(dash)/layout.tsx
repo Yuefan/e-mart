@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { Brand } from "@/components/brand";
 import { SidebarNav } from "@/components/sidebar-nav";
 import { TopBar } from "@/components/top-bar";
 
@@ -27,10 +28,10 @@ export default async function DashboardLayout({
     <div className="flex min-h-screen">
       <aside className="hidden w-60 shrink-0 flex-col border-r border-line bg-panel md:flex">
         <div className="border-b border-line px-5 py-4">
-          <Link href="/" className="text-sm font-semibold">
-            AI Marketing
+          <Link href="/" className="block transition-opacity hover:opacity-80">
+            <Brand size="md" />
           </Link>
-          <p className="mt-0.5 text-xs text-muted">Dashboard</p>
+          <p className="mt-1 text-xs text-muted">Marketing dashboard</p>
         </div>
 
         <SidebarNav sites={sites} />

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 960" role="img" aria-label="ROARLAND">
+  <title>ROARLAND</title>
+  <!-- Traced from ROARLAND-Logo4.png: the mark is exact rectangles and 45°
+       chamfers, so it reproduces losslessly as paths and stays crisp at any
+       size. currentColor lets the two themes recolour the glyph while the red
+       bar stays fixed — it is the one element that is brand-constant. -->
+  <g fill="currentColor">
+    <!-- upper bowl: left stem, chamfered top-right shoulder, right stem -->
+    <path d="M0 0 H480 L640 160 V320 H400 V160 H240 V320 H0 Z" />
+    <!-- lower legs: left stem, and right leg with a chamfered top -->
+    <path d="M0 600 H240 V960 H0 Z" />
+    <path d="M400 600 H480 L640 760 V960 H400 Z" />
+  </g>
+  <rect x="0" y="440" width="640" height="80" fill="#e2211c" />
+</svg>
