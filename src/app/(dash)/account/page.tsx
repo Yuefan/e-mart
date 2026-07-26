@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { appUrl, isGoogleConfigured } from "@/lib/env";
+import { isEmailConfigured } from "@/lib/email/send";
 import { getT } from "@/lib/i18n";
 import { fmt } from "@/lib/i18n/format";
 import { prisma } from "@/lib/prisma";
 import { getSessionInfo } from "@/lib/session";
 import { ConnectionCard, type ConnectionView } from "@/components/connection-card";
 import { GoogleConnectButton } from "@/components/google-connect-button";
+import { NotificationForm } from "@/components/notification-form";
 import { Badge, Card, CardHeader, EmptyState, buttonClass } from "@/components/ui";
 
 /**
@@ -25,9 +27,14 @@ function formatDateTime(value: Date | null, unknown: string): string {
   return `${value.toISOString().replace("T", " ").slice(0, 16)} UTC`;
 }
 
-export default async function AccountPage() {
+export default async function AccountPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ verified?: string; verify_error?: string }>;
+}) {
   const user = await requireUser();
   const { t } = await getT();
+  const { verified: justVerified, verify_error: verifyError } = await searchParams;
   const [session, connections, siteCount] = await Promise.all([
     getSessionInfo(),
     prisma.connection.findMany({
@@ -39,6 +46,29 @@ export default async function AccountPage() {
     }),
     prisma.site.count({ where: { userId: user.id } }),
   ]);
+
+  const [notify, pending] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: user.id },
+      select: { notifyEmail: true, notifyEmailVerifiedAt: true, notifyOnAudit: true },
+    }),
+    // An unconsumed, unexpired challenge is what "awaiting confirmation" means.
+    prisma.emailVerification.findFirst({
+      where: { userId: user.id, consumedAt: null, expiresAt: { gt: new Date() } },
+      orderBy: { createdAt: "desc" },
+      select: { email: true },
+    }),
+  ]);
+
+  const verifyMessage = justVerified
+    ? { tone: "pos" as const, text: fmt(t.notify.verifyOk, { email: justVerified }) }
+    : verifyError === "expired"
+      ? { tone: "neg" as const, text: t.notify.verifyExpired }
+      : verifyError === "used"
+        ? { tone: "neg" as const, text: t.notify.verifyUsed }
+        : verifyError
+          ? { tone: "neg" as const, text: t.notify.verifyInvalid }
+          : null;
 
   const views: ConnectionView[] = connections.map((connection) => ({
     id: connection.id,
@@ -98,6 +128,28 @@ export default async function AccountPage() {
               </button>
             </form>
           </div>
+        </Card>
+
+        <Card>
+          <CardHeader title={t.notify.title} hint={t.notify.hint} />
+          {verifyMessage ? (
+            <p
+              className={
+                verifyMessage.tone === "pos"
+                  ? "border-b border-line px-5 py-2.5 text-sm text-pos"
+                  : "border-b border-line px-5 py-2.5 text-sm text-neg"
+              }
+            >
+              {verifyMessage.text}
+            </p>
+          ) : null}
+          <NotificationForm
+            configured={isEmailConfigured()}
+            initialEmail={notify?.notifyEmail ?? null}
+            verified={Boolean(notify?.notifyEmailVerifiedAt)}
+            enabled={notify?.notifyOnAudit ?? true}
+            pendingEmail={notify?.notifyEmailVerifiedAt ? null : (pending?.email ?? null)}
+          />
         </Card>
 
         <Card>

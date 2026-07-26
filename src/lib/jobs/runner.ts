@@ -1,5 +1,6 @@
 import type { JobRun } from "@prisma/client";
 import type { TopicIdea } from "@/lib/ai/schemas";
+import { sendAuditReport } from "@/lib/email/audit-report";
 import { runContentGenerate, runTopicIdeation } from "./content";
 import { runGscSync } from "./gsc-sync";
 import { runHealthCheck, runTokenRefresh } from "./maintenance";
@@ -18,7 +19,21 @@ export async function runJob(job: JobRun): Promise<unknown> {
     case "seo_audit": {
       if (!job.siteId) throw new Error("seo_audit requires a siteId");
       const payload = parsePayload<{ triggeredBy?: "cron" | "manual" }>(job);
-      return runSeoAudit(job.siteId, { triggeredBy: payload?.triggeredBy ?? "cron" });
+      const result = await runSeoAudit(job.siteId, {
+        triggeredBy: payload?.triggeredBy ?? "cron",
+      });
+
+      // Reporting is deliberately outside runSeoAudit and cannot throw: the
+      // audit is already written by this point, and a mail problem must not
+      // mark a completed run as failed.
+      const report = await sendAuditReport(result.auditId);
+      console.log(
+        report.sent
+          ? `[seo-audit] report emailed to ${report.to} (${report.messageId})`
+          : `[seo-audit] no report sent: ${report.reason}`,
+      );
+
+      return { ...result, reportSent: report.sent };
     }
 
     case "content_ideate": {

@@ -21,13 +21,52 @@ enum Provider {
 }
 
 model User {
-  id          String       @id @default(cuid())
-  email       String       @unique
-  name        String?
-  image       String?
-  createdAt   DateTime     @default(now())
-  sites       Site[]
-  connections Connection[]
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  image     String?
+  createdAt DateTime @default(now())
+
+  /// Where audit reports go. Deliberately separate from `email`: the Google
+  /// address that signs you in is not necessarily the one you want reports at,
+  /// and it arrives already trusted — this one has to prove itself.
+  notifyEmail String?
+  /// Null means unverified. Nothing is ever sent to an unverified address, so
+  /// this app cannot be used to mail someone who did not opt in.
+  notifyEmailVerifiedAt DateTime?
+  /// Lets reports be paused without losing the verified address.
+  notifyOnAudit Boolean @default(true)
+
+  /// UI language, mirrored from the locale cookie so background jobs can pick
+  /// a language for email — a worker has no request and therefore no cookie.
+  locale String @default("en")
+
+  sites             Site[]
+  connections       Connection[]
+  emailVerifications EmailVerification[]
+}
+
+/// A pending "is this address yours?" challenge.
+model EmailVerification {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Kept alongside the token: the address is only written to the user record
+  /// once the matching link is opened, so a typo cannot silently take effect.
+  email String
+
+  /// SHA-256 of the token, never the token itself. A database leak then does
+  /// not hand over working verification links.
+  tokenHash String @unique
+
+  expiresAt DateTime
+  /// Set on use. Present rather than deleting the row so a reused link can be
+  /// told apart from one that never existed.
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId, createdAt])
 }
 
 model Site {

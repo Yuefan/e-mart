@@ -30,6 +30,10 @@ x-app-env: &app-env
   AI_MODEL_FAST: ${AI_MODEL_FAST:-claude-haiku-4-5}
   AI_EFFORT: ${AI_EFFORT:-medium}
   AI_MAX_MONTHLY_USD: ${AI_MAX_MONTHLY_USD:-50}
+  # Audit reports. Without both set, nothing is emailed and the settings panel
+  # says so rather than failing at send time.
+  RESEND_API_KEY: ${RESEND_API_KEY:-}
+  EMAIL_FROM: ${EMAIL_FROM:-}
   # Only meaningful if the host needs a proxy to reach Google / the AI gateway.
   HTTPS_PROXY: ${HTTPS_PROXY:-}
   HTTP_PROXY: ${HTTP_PROXY:-}

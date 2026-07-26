@@ -414,6 +414,40 @@ export const en = {
     },
   },
 
+  notFound: {
+    title: "That page does not exist",
+    description:
+      "The link may be stale, or the site may have been removed. Everything else is still where you left it.",
+    backHome: "Back to the dashboard",
+  },
+
+  notify: {
+    title: "Notifications",
+    hint: "Where audit reports are sent. Reports go out when a run finishes.",
+    emailLabel: "Report email",
+    emailPlaceholder: "you@example.com",
+    send: "Send verification",
+    sending: "Sending…",
+    resend: "Resend",
+    remove: "Remove",
+    removing: "Removing…",
+    verified: "verified",
+    pending: "awaiting confirmation",
+    sentTo: "Verification sent to {email}. The link is good for 24 hours.",
+    pendingNote:
+      "Open the link in that inbox to confirm. Nothing is sent to an address until it is confirmed.",
+    verifiedNote: "Reports for every site on this account go to {email}.",
+    onAudit: "Email me when an audit finishes",
+    notConfigured:
+      "Email is not configured on the server — set RESEND_API_KEY and EMAIL_FROM. See docs/email-setup.md.",
+    invalidEmail: "That does not look like an email address.",
+    removed: "Removed. No further reports will be sent.",
+    verifyOk: "Email confirmed — reports will be sent to {email}.",
+    verifyInvalid: "That confirmation link is not valid.",
+    verifyExpired: "That confirmation link has expired. Request a new one from Settings.",
+    verifyUsed: "That confirmation link has already been used.",
+  },
+
   settings: {
     title: "Settings",
     brandVoice: "Brand voice",
@@ -859,6 +893,38 @@ export const zh: Dictionary = {
       placeholders: "还有 {n} 个占位图待填充。",
       altEvery: "每张图片都应该有 alt 文本。",
     },
+  },
+
+  notFound: {
+    title: "页面不存在",
+    description: "链接可能已经失效，或者这个站点已被删除。其他内容都还在原处。",
+    backHome: "回到控制台",
+  },
+
+  notify: {
+    title: "通知",
+    hint: "诊断报告发送到哪里。每次运行结束后发出。",
+    emailLabel: "报告邮箱",
+    emailPlaceholder: "you@example.com",
+    send: "发送验证邮件",
+    sending: "发送中…",
+    resend: "重新发送",
+    remove: "移除",
+    removing: "移除中…",
+    verified: "已验证",
+    pending: "待确认",
+    sentTo: "验证邮件已发送至 {email}，链接 24 小时内有效。",
+    pendingNote: "去那个邮箱里点开链接完成确认。未确认的邮箱不会收到任何邮件。",
+    verifiedNote: "本账号下所有站点的报告都会发送到 {email}。",
+    onAudit: "诊断完成后邮件通知我",
+    notConfigured:
+      "服务端还没配置邮件 —— 需要设置 RESEND_API_KEY 和 EMAIL_FROM，见 docs/email-setup.md。",
+    invalidEmail: "这个邮箱地址格式不对。",
+    removed: "已移除，之后不会再发送报告。",
+    verifyOk: "邮箱已确认 —— 报告会发送到 {email}。",
+    verifyInvalid: "这个确认链接无效。",
+    verifyExpired: "这个确认链接已过期，请到设置里重新获取。",
+    verifyUsed: "这个确认链接已经用过了。",
   },
 
   settings: {
