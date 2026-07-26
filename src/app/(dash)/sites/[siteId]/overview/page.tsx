@@ -130,21 +130,10 @@ export default async function OverviewPage({ params, searchParams }: PageProps) 
             />
           </Card>
 
-          <InsightCards insights={insights} />
-
+          {/* Audience shape sits directly under the trend: the chart says how
+              much traffic, these say who it was. Both are compact, so they read
+              as one band rather than competing with the long tables below. */}
           <div className="grid gap-3 lg:grid-cols-2">
-            <BreakdownTable
-              title="Top queries"
-              dimension="query"
-              rows={queries}
-              hint={`Top ${queries.length} by clicks`}
-            />
-            <BreakdownTable
-              title="Top pages"
-              dimension="page"
-              rows={pages}
-              hint={`Top ${pages.length} by clicks`}
-            />
             <Card>
               <CardHeader
                 title="Countries"
@@ -160,6 +149,23 @@ export default async function OverviewPage({ params, searchParams }: PageProps) 
               <CardHeader title="Devices" hint="Share of clicks" />
               <ShareDonut rows={devices} dimension="device" />
             </Card>
+          </div>
+
+          <InsightCards insights={insights} />
+
+          <div className="grid gap-3 lg:grid-cols-2">
+            <BreakdownTable
+              title="Top queries"
+              dimension="query"
+              rows={queries}
+              hint={`Top ${queries.length} by clicks`}
+            />
+            <BreakdownTable
+              title="Top pages"
+              dimension="page"
+              rows={pages}
+              hint={`Top ${pages.length} by clicks`}
+            />
           </div>
         </div>
       )}
