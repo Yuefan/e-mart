@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { consumeVerification } from "@/lib/email/verification";
+import { appUrl } from "@/lib/env";
 
 /**
  * Target of the emailed confirmation link.
@@ -16,7 +17,10 @@ export async function GET(request: Request) {
   const token = new URL(request.url).searchParams.get("token") ?? "";
   const result = await consumeVerification(token);
 
-  const target = new URL("/account", request.url);
+  // Based on appUrl(), never request.url: behind the reverse proxy the request
+  // arrives on the container's own address, so request.url is
+  // http://0.0.0.0:3000 and the user would be redirected somewhere unreachable.
+  const target = new URL("/account", appUrl());
   if (result.ok) {
     target.searchParams.set("verified", result.email);
   } else {
