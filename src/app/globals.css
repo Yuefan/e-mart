@@ -175,3 +175,29 @@ body {
   padding: 0.4em 0.6em;
   text-align: left;
 }
+
+/* ── Marketing homepage (ported from the roarland-website ai-tools page) ── */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.marquee-track {
+  animation: marquee 36s linear infinite;
+}
+
+.tools-dash-scroll-light {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(204, 0, 0, 0.5) rgba(10, 10, 10, 0.08);
+}
+.tools-dash-scroll-light::-webkit-scrollbar {
+  height: 8px;
+}
+.tools-dash-scroll-light::-webkit-scrollbar-track {
+  background: rgba(10, 10, 10, 0.06);
+}
+.tools-dash-scroll-light::-webkit-scrollbar-thumb {
+  background: rgba(204, 0, 0, 0.5);
+}
+.tools-dash-scroll-light::-webkit-scrollbar-thumb:hover {
+  background: #cc0000;
+}

@@ -499,6 +499,375 @@ export const en = {
     nameEmpty: "Name cannot be empty.",
     minMaxError: "Minimum word count cannot exceed the maximum.",
   },
+
+  marketing: {
+    nav: {
+      links: [
+        { label: "Features", hash: "features" },
+        { label: "How it works", hash: "integration" },
+        { label: "Why us", hash: "why" },
+        { label: "FAQ", hash: "faq" },
+      ],
+      cta: "Sign in",
+    },
+    hero: {
+      eyebrow: "ROARLAND MARKETING · AI TOOL",
+      headline: { line1: "Make sense of", line2Before: "your ", line2Highlight: "search data" },
+      desc: "Connect Google Search Console and let AI analyse your clicks, impressions and ranking trends — surfacing traffic anomalies and keyword opportunities. Read-only access, encrypted throughout, and no development work at all.",
+      ctaPrimary: "Start free →",
+      ctaSecondary: "See what it does",
+      note: "Sign in with Google · Read-only · Revoke any time",
+      dash: {
+        tabs: ["Overview", "AI insights"],
+        nav: ["Overview", "Keywords", "Pages", "Sites", "Activity"],
+        demoLabel: "Demo site",
+        title: "Search data overview",
+        subtitle: "Clicks, impressions, rankings and AI insight on one screen",
+        ranges: ["Today", "7 days", "30 days"],
+        metrics: [
+          { id: "clicks", label: "Total clicks", value: "18,204", delta: "+12.4%" },
+          { id: "impressions", label: "Total impressions", value: "392,510", delta: "+8.1%" },
+          { id: "indexed", label: "Indexed pages", value: "1,286", delta: "+3.2%" },
+          { id: "ctr", label: "Average CTR", value: "4.64%", delta: "+0.6%" },
+          { id: "position", label: "Average position", value: "6.2", delta: "↑ 1.3" },
+          { id: "sites", label: "Sites tracked", value: "5", delta: "+1 this month" },
+        ],
+        trendTitle: "Click trend · last 12 weeks",
+        distributionTitle: "Traffic split",
+        rankingTitle: "Top queries",
+        ranking: [
+          { id: "r1", q: "smart massage cushion", clicks: 1204, pct: 100 },
+          { id: "r2", q: "ai mowing robot", clicks: 986, pct: 82 },
+          { id: "r3", q: "roarland", clicks: 742, pct: 62 },
+          { id: "r4", q: "smart massage chair home", clicks: 511, pct: 42 },
+        ],
+      },
+    },
+    features: {
+      heading: "Define your search data layer",
+      desc: "Model access, cost control, keys, monitoring and failover in a single gateway — so your team manages every search data request through one unified AI analysis layer.",
+      cards: [
+        { id: "sovereignty", num: "01", title: "Data sovereignty" },
+        { id: "unified", num: "02", title: "Unified view" },
+        { id: "insights", num: "03", title: "AI insight" },
+      ],
+      radarAxes: ["Real time", "Automation", "Multi-site", "Security", "Depth", "Ease of use"],
+      radarSeries: [
+        { id: "manual", name: "Manual checks" },
+        { id: "excel", name: "Excel export" },
+        { id: "roarland", name: "ROARLAND AI" },
+      ],
+      checklist: [
+        { id: "multi", title: "All sites in one place", desc: "Every Search Console property, centrally managed" },
+        { id: "compare", title: "Cross-site comparison", desc: "Clicks, impressions and rankings side by side" },
+        { id: "switch", title: "One-click switching", desc: "No more logging in and out of separate consoles" },
+        { id: "sync", title: "Live data sync", desc: "Latest data pulled automatically once authorised" },
+      ],
+      unifiedNote: "aaaaa.ai · aabbb.com · aabbccc.net — one account, all of them",
+      orbitCenter: "AI\nengine",
+      orbitNodes: ["Keywords", "Rankings", "Traffic", "Reports", "Alerts", "Advice", "Anomalies", "Trends"],
+      insightsNote: "More than a dashboard. Every run builds on the last — trends, anomalies and recommendations.",
+    },
+    integration: {
+      heading: { line1: "Connected in 3 minutes", line2: "with no development" },
+      aside: "No code to write, no tracking plugin to install. Authorise and go.",
+      steps: [
+        { num: "01", title: "Sign in with Google", desc: "No new account to create — just sign in with the Google account that already has Search Console access." },
+        { num: "02", title: "Grant read-only access", desc: "We request read-only Search Console data and basic identity information. Nothing is written or modified." },
+        { num: "03", title: "Open your AI dashboard", desc: "Your dashboard is generated immediately, with AI already sorting trends, anomalies and recommendations." },
+      ],
+      terminal: {
+        label: "google-oauth · scope request",
+        comment: "// ROARLAND Marketing requests the following",
+        scopes: [
+          { id: "webmasters", name: "webmasters.readonly", note: "— read-only Search Console data" },
+          { id: "userinfo", name: "userinfo.email", note: "— account identification" },
+        ],
+        denied: "✗ No write, delete or site management permissions requested",
+      },
+    },
+    whyUs: {
+      heading: "Why ROARLAND Marketing",
+      reasons: [
+        { id: "readonly", title: "Read-only by design", desc: "We request read-only Search Console access only — no ability to write, delete or change site configuration." },
+        { id: "encryption", title: "AES-256-GCM encryption", desc: "Every authorisation token is encrypted before it is stored, with keys held separately. It never reaches the browser." },
+        { id: "official", title: "Official Google API", desc: "A direct connection to the official Search Console API — no intermediary proxy, so the data is traceable and trustworthy." },
+        { id: "multisite", title: "One dashboard, every site", desc: "Manage multiple Search Console properties from a single account, with cross-site data together and comparable." },
+        { id: "nodev", title: "Live in minutes", desc: "No tracking code, no plugin to install. Authorise and a full dashboard is ready within two minutes." },
+        { id: "support", title: "Real human support", desc: "Stuck on setup or unsure how to read the data? The ROARLAND engineering team is reachable directly." },
+      ],
+    },
+    faq: {
+      heading: "FAQ",
+      items: [
+        { id: "what", q: "What does ROARLAND Marketing do?", a: "It is ROARLAND's own AI search data analysis tool. It connects to your Google Search Console and turns raw clicks, impressions and ranking data into readable trend charts, with AI flagging traffic anomalies and suggesting improvements." },
+        { id: "permissions", q: "What permissions does it need? Is it safe?", a: "Only read-only Search Console access and basic account information. It has no ability to write, delete or change site configuration. Authorisation tokens are stored encrypted with AES-256-GCM and never pass through the browser." },
+        { id: "pricing", q: "Is there a cost?", a: "This dashboard runs on infrastructure you control — there's no separate subscription." },
+        { id: "multisite", q: "Can I manage several websites at once?", a: "Yes. Every Search Console property under one Google account can be viewed and switched between in the same dashboard." },
+        { id: "freshness", q: "How often does the data update?", a: "Search Console data itself typically lags by one to three days. The dashboard syncs automatically as soon as new data is available — there is nothing to refresh manually." },
+        { id: "install", q: "Do I need to add code or a plugin to my site?", a: "No. The tool reads the data Google Search Console already holds. Nothing needs to be added to your website." },
+        { id: "revoke", q: "Can I disconnect at any time?", a: "Yes. You can revoke access from your Google account permissions page whenever you like, and ROARLAND Marketing immediately loses the ability to read any data." },
+      ],
+    },
+    cta: {
+      heading: { line1: "Ready to analyse", line2: "your marketing data with AI?" },
+      desc: "Sign in with Google, grant read-only access, and your AI dashboard is ready in two minutes.",
+      ctaPrimary: "Get started →",
+      ctaSecondary: "Contact us",
+    },
+    footer: {
+      tagline: "AI for the home use, data driven products.\nSmart technology that every household can genuinely enjoy.",
+      linksHeading: "On this page",
+      contactHeading: "Contact",
+      email: "hi@roarland.net",
+      phone: "+86 18918119160",
+      copyright: "© 2026 ROARLAND · All Rights Reserved",
+      privacyLink: "Privacy policy",
+      termsLink: "Terms of use",
+    },
+  },
+
+  legal: {
+    updatedLabel: "Last updated",
+    backLink: "Back to home",
+    privacy: {
+      title: "Privacy Policy",
+      updated: "31 July 2026",
+      intro:
+        "This policy explains how ROARLAND collects, uses, stores and protects your information when you visit this website, use our smart hardware products, or use the ROARLAND Marketing search data analysis tool. Please read it in full before using our services.",
+      sections: [
+        {
+          id: "scope",
+          heading: "Scope",
+          paragraphs: [
+            "This policy applies to this website, the ROARLAND Marketing tool, and related services operated by ROARLAND.",
+            "It does not apply to third-party websites or services reached through links on this site. Information handling on those services is governed by their own privacy policies.",
+          ],
+        },
+        {
+          id: "collect",
+          heading: "Information we collect",
+          paragraphs: ["We collect only what is necessary to provide our services:"],
+          bullets: [
+            "Information you give us directly: your name, email address, phone number and the content of your message when you contact us.",
+            "Google account authorisation data: when you authorise ROARLAND Marketing, we receive your account email address (to identify the account) and read-only Google Search Console data — clicks, impressions, rankings, queries and page performance.",
+            "Technical information collected automatically: IP address, browser type, device type, access time and pages visited, held in access logs to keep the service secure and stable.",
+          ],
+        },
+        {
+          id: "google",
+          heading: "Use of Google user data",
+          paragraphs: [
+            "ROARLAND Marketing connects to Search Console through the official Google API. The scopes we request are read-only: webmasters.readonly (to read Search Console data) and userinfo.email (to identify the account). We have no ability to write, delete or alter your site configuration.",
+            "ROARLAND's use and transfer of Google user data adheres to the Google API Services User Data Policy, including its Limited Use requirements. Specifically: we use this data only to present and analyse your own search performance for you; we do not use it for advertising; we do not sell it to any third party; and we do not use it to train generalised AI models.",
+            "You can revoke ROARLAND Marketing's access at any time from your Google account third-party app permissions page. Once revoked, we immediately lose the ability to read any data.",
+          ],
+        },
+        {
+          id: "use",
+          heading: "How we use information",
+          bullets: [
+            "To provide, maintain and improve our products and services;",
+            "To generate the dashboards, trend charts and recommendations you have asked for;",
+            "To respond to your enquiries, feedback and support requests;",
+            "To monitor and prevent security risks, abuse and technical faults;",
+            "To meet compliance obligations where required by law.",
+          ],
+        },
+        {
+          id: "sharing",
+          heading: "Sharing information",
+          paragraphs: [
+            "We do not sell or rent your personal information. We share it only in these limited circumstances:",
+          ],
+          bullets: [
+            "With your explicit consent or at your request;",
+            "With infrastructure providers, limited to what is needed to operate the service, under contracts that require them to process data only on our instructions;",
+            "Where required to comply with law, regulation, or a lawful request from a competent authority.",
+          ],
+        },
+        {
+          id: "security",
+          heading: "Storage and security",
+          paragraphs: [
+            "All OAuth authorisation tokens are encrypted with AES-256-GCM before they are written to storage. Keys are held separately from the data, and tokens are never passed to the browser.",
+            "Data is encrypted in transit using TLS. Internal access follows the principle of least privilege.",
+            "No method of transmission or storage is completely secure. We take reasonable, industry-standard measures to protect your information, but we cannot guarantee absolute security.",
+          ],
+        },
+        {
+          id: "retention",
+          heading: "Data retention",
+          paragraphs: [
+            "We keep your information only as long as necessary for the purposes described in this policy. When you revoke access or ask us to delete your account, we delete the associated tokens and cached data, except where law requires us to retain it.",
+          ],
+        },
+        {
+          id: "rights",
+          heading: "Your rights",
+          paragraphs: ["To the extent applicable law allows, you have the right to:"],
+          bullets: [
+            "Ask what information we hold about you;",
+            "Ask us to correct information that is inaccurate;",
+            "Ask us to delete your information;",
+            "Withdraw consent you previously gave, at any time;",
+            "Raise a complaint about how we handle your information.",
+          ],
+        },
+        {
+          id: "cookies",
+          heading: "Cookies and similar technologies",
+          paragraphs: [
+            "This website is a static site and does not use advertising or cross-site tracking cookies. ROARLAND Marketing uses session cookies that are strictly necessary to keep you signed in.",
+          ],
+        },
+        {
+          id: "children",
+          heading: "Children",
+          paragraphs: [
+            "Our services are not directed at children under 14, and we do not knowingly collect their personal information. If you believe we may have done so, please contact us and we will delete it.",
+          ],
+        },
+        {
+          id: "changes",
+          heading: "Changes to this policy",
+          paragraphs: [
+            "We may update this policy from time to time. The updated version will be posted on this page with a revised date. Where changes are significant, we will give notice by other appropriate means.",
+          ],
+        },
+        {
+          id: "contact",
+          heading: "Contact us",
+          paragraphs: [
+            "If you have questions about this policy or how we handle information, please contact us:",
+          ],
+          bullets: [
+            "Email: hi@roarland.net",
+            "Phone: +86 18918119160",
+          ],
+        },
+      ],
+    },
+    terms: {
+      title: "Terms of Service",
+      updated: "31 July 2026",
+      intro:
+        "These terms form an agreement between you and ROARLAND covering your use of this website and the ROARLAND Marketing tool. By accessing or using our services you confirm that you have read, understood and agree to be bound by them. If you do not agree, please do not use the services.",
+      sections: [
+        {
+          id: "acceptance",
+          heading: "Acceptance of these terms",
+          paragraphs: [
+            "You accept these terms by accessing this website or using ROARLAND Marketing. If you are using the service on behalf of an organisation, you confirm that you are authorised to do so.",
+          ],
+        },
+        {
+          id: "services",
+          heading: "The services",
+          paragraphs: [
+            "This website provides information about the ROARLAND brand, its products and its technology.",
+            "ROARLAND Marketing is a search data analysis tool. Once you authorise it, it reads your Google Search Console data and presents the analysis as charts and AI-generated recommendations.",
+          ],
+        },
+        {
+          id: "account",
+          heading: "Accounts and authorisation",
+          bullets: [
+            "You must authorise using a Google account you own and that already holds the relevant Search Console permissions;",
+            "You are responsible for activity under that account and for keeping its credentials secure;",
+            "You must not authorise access to site data you are not entitled to access;",
+            "You may revoke authorisation at any time, which ends our ability to read data.",
+          ],
+        },
+        {
+          id: "acceptable-use",
+          heading: "Acceptable use",
+          paragraphs: ["When using our services, you must not:"],
+          bullets: [
+            "Breach any applicable law or regulation;",
+            "Attempt to gain unauthorised access to our systems, our data, or other users' information;",
+            "Use automated means to overload, interfere with or disrupt the service;",
+            "Reverse engineer, decompile or attempt to extract the source code of the service;",
+            "Resell the service or make it available to third parties without our written permission;",
+            "Upload or distribute malicious code, or take any action that compromises the security of the service.",
+          ],
+        },
+        {
+          id: "ip",
+          heading: "Intellectual property",
+          paragraphs: [
+            "All content in this website and the services — including text, graphics, interface design, trademarks, logos and software — belongs to ROARLAND or its licensors and is protected by law.",
+            "You may not copy, modify, distribute or commercially exploit that content without our prior written permission.",
+            "The search data you access through the service remains yours. Nothing in these terms changes its ownership.",
+          ],
+        },
+        {
+          id: "third-party",
+          heading: "Third-party services",
+          paragraphs: [
+            "ROARLAND Marketing depends on the Google Search Console API. The accuracy, completeness and availability of that data rest with Google, and we cannot guarantee them. Changes, outages or policy decisions on Google's side may affect how this service works.",
+            "Your use of Google services is also governed by Google's own terms.",
+          ],
+        },
+        {
+          id: "availability",
+          heading: "Availability and changes",
+          paragraphs: [
+            "We make reasonable efforts to keep the service running, but we do not promise it will be uninterrupted or error-free. We may suspend it for maintenance, upgrades or other reasons.",
+            "We may modify, suspend or discontinue all or part of the service. Where a change is likely to have a significant effect, we will make reasonable efforts to give notice in advance.",
+          ],
+        },
+        {
+          id: "disclaimer",
+          heading: "Disclaimer",
+          paragraphs: [
+            "To the fullest extent permitted by law, the services are provided on an \"as is\" and \"as available\" basis without warranties of any kind, express or implied, including but not limited to merchantability, fitness for a particular purpose and non-infringement.",
+            "AI-generated analysis and recommendations are for reference only and do not constitute professional advice. You are responsible for your own judgement and for decisions you make on the basis of them.",
+          ],
+        },
+        {
+          id: "liability",
+          heading: "Limitation of liability",
+          paragraphs: [
+            "To the fullest extent permitted by law, ROARLAND is not liable for any indirect, incidental, special, punitive or consequential loss, including loss of profit, loss of data, business interruption or damage to goodwill.",
+            "Nothing in these terms excludes or limits liability that cannot lawfully be excluded or limited.",
+          ],
+        },
+        {
+          id: "termination",
+          heading: "Termination",
+          paragraphs: [
+            "You may stop using the service and revoke authorisation at any time.",
+            "If you breach these terms, we may suspend or terminate your access, with or without notice.",
+          ],
+        },
+        {
+          id: "law",
+          heading: "Governing law and disputes",
+          paragraphs: [
+            "These terms, and their formation, validity, interpretation and any dispute arising from them, are governed by the laws of the People's Republic of China (excluding Hong Kong, Macau and Taiwan).",
+            "The parties will first try to resolve any dispute by good-faith negotiation. Failing that, either party may bring proceedings before the competent People's Court at ROARLAND's place of business.",
+          ],
+        },
+        {
+          id: "changes",
+          heading: "Changes to these terms",
+          paragraphs: [
+            "We may revise these terms from time to time. The revised version will be posted on this page with an updated date and takes effect from publication. Continuing to use the service after that means you accept the revised terms.",
+          ],
+        },
+        {
+          id: "contact",
+          heading: "Contact us",
+          paragraphs: ["If you have questions about these terms, please contact us:"],
+          bullets: [
+            "Email: hi@roarland.net",
+            "Phone: +86 18918119160",
+          ],
+        },
+      ],
+    },
+  },
 };
 
 /** Shape is fixed by the English copy, so a missing key fails the build. */
@@ -974,6 +1343,375 @@ export const zh: Dictionary = {
     typeToConfirm: "输入 {name} 以确认",
     nameEmpty: "名称不能为空。",
     minMaxError: "最少字数不能超过最多字数。",
+  },
+
+  marketing: {
+    nav: {
+      links: [
+        { label: "功能", hash: "features" },
+        { label: "接入流程", hash: "integration" },
+        { label: "为什么选择我们", hash: "why" },
+        { label: "常见问题", hash: "faq" },
+      ],
+      cta: "登录",
+    },
+    hero: {
+      eyebrow: "ROARLAND MARKETING · AI TOOL",
+      headline: { line1: "用 AI 读懂", line2Before: "你的", line2Highlight: "搜索数据" },
+      desc: "接入 Google Search Console，AI 自动分析点击、展现与排名趋势，发现流量异动与关键词机会，只读授权，数据全程加密，无需任何开发接入。",
+      ctaPrimary: "免费开始使用 →",
+      ctaSecondary: "了解能力",
+      note: "使用 Google 账号登录 · 只读权限 · 随时可断开",
+      dash: {
+        tabs: ["总览", "AI 建议"],
+        nav: ["总览", "关键词", "页面表现", "站点管理", "使用记录"],
+        demoLabel: "Demo 站点",
+        title: "搜索数据总览",
+        subtitle: "点击、展现、排名与 AI 洞察，一屏尽览",
+        ranges: ["今天", "近7天", "近30天"],
+        metrics: [
+          { id: "clicks", label: "总点击量", value: "18,204", delta: "+12.4%" },
+          { id: "impressions", label: "总展现量", value: "392,510", delta: "+8.1%" },
+          { id: "indexed", label: "索引页面数", value: "1,286", delta: "+3.2%" },
+          { id: "ctr", label: "平均点击率", value: "4.64%", delta: "+0.6%" },
+          { id: "position", label: "平均排名", value: "6.2", delta: "↑ 1.3" },
+          { id: "sites", label: "监测站点数", value: "5", delta: "本月 +1" },
+        ],
+        trendTitle: "点击趋势 · 近 12 周",
+        distributionTitle: "流量分布",
+        rankingTitle: "热门查询排行",
+        ranking: [
+          { id: "r1", q: "智能按摩坐垫 推荐", clicks: 1204, pct: 100 },
+          { id: "r2", q: "ai 割草机器人", clicks: 986, pct: 82 },
+          { id: "r3", q: "roarland 若尔岚德", clicks: 742, pct: 62 },
+          { id: "r4", q: "家用按摩椅 智能", clicks: 511, pct: 42 },
+        ],
+      },
+    },
+    features: {
+      heading: "定义你的搜索数据层",
+      desc: "把模型访问、成本控制、密钥、监控与容灾整合进一个网关，让团队通过统一的 AI 分析层管理每一次搜索数据请求。",
+      cards: [
+        { id: "sovereignty", num: "01", title: "数据主权" },
+        { id: "unified", num: "02", title: "统一视图" },
+        { id: "insights", num: "03", title: "AI 洞察" },
+      ],
+      radarAxes: ["实时性", "自动化", "多站点", "安全性", "洞察深度", "易用性"],
+      radarSeries: [
+        { id: "manual", name: "人工检查" },
+        { id: "excel", name: "Excel 导出" },
+        { id: "roarland", name: "ROARLAND AI" },
+      ],
+      checklist: [
+        { id: "multi", title: "多站点集中", desc: "跨 Search Console 资源统一管理" },
+        { id: "compare", title: "跨站数据对比", desc: "点击、展现、排名同屏对比" },
+        { id: "switch", title: "一键切换资源", desc: "无需反复登录不同后台" },
+        { id: "sync", title: "实时数据同步", desc: "授权后自动拉取最新数据" },
+      ],
+      unifiedNote: "aaaaa.ai · aabbb.com · aabbccc.net — 一个账号，全部管理",
+      orbitCenter: "AI\n引擎",
+      orbitNodes: ["关键词", "排名", "流量", "报表", "预警", "建议", "异动", "趋势"],
+      insightsNote: "不止是看数据。每一次分析都在积累趋势、异动与优化建议。",
+    },
+    integration: {
+      heading: { line1: "3 分钟接入", line2: "无需任何开发" },
+      aside: "不需要写代码、不需要埋点插件，授权即用。",
+      steps: [
+        { num: "01", title: "使用 Google 账号登录", desc: "无需注册新账号，直接使用拥有 Search Console 权限的 Google 账号登录。" },
+        { num: "02", title: "授权只读访问权限", desc: "仅申请只读 Search Console 数据及基础身份信息，不涉及任何写入或修改操作。" },
+        { num: "03", title: "查看 AI 分析看板", desc: "授权完成后立即生成看板，AI 自动整理趋势、异动与优化建议，开箱即用。" },
+      ],
+      terminal: {
+        label: "google-oauth · scope request",
+        comment: "// ROARLAND Marketing 请求以下权限",
+        scopes: [
+          { id: "webmasters", name: "webmasters.readonly", note: "— Search Console 只读数据" },
+          { id: "userinfo", name: "userinfo.email", note: "— 用于账号识别" },
+        ],
+        denied: "✗ 不申请任何写入、删除或站点管理权限",
+      },
+    },
+    whyUs: {
+      heading: "为什么是 ROARLAND Marketing",
+      reasons: [
+        { id: "readonly", title: "只读安全接入", desc: "仅申请 Search Console 只读权限，不具备任何写入、删除或站点配置能力。" },
+        { id: "encryption", title: "AES-256-GCM 加密", desc: "所有授权 Token 落库前均加密存储，密钥与数据分离，永不暴露给浏览器。" },
+        { id: "official", title: "官方 Google API", desc: "直连 Google Search Console 官方接口，无中间代理，数据来源可信可追溯。" },
+        { id: "multisite", title: "多站点统一看板", desc: "一个账号管理多个 Search Console 资源，跨站数据集中呈现、随时对比。" },
+        { id: "nodev", title: "免开发极速上线", desc: "无需埋点、无需安装插件，授权即用，2 分钟内生成完整分析看板。" },
+        { id: "support", title: "真人技术支持", desc: "遇到接入或数据解读问题，随时可联系 ROARLAND 工程团队人工协助。" },
+      ],
+    },
+    faq: {
+      heading: "FAQ",
+      items: [
+        { id: "what", q: "ROARLAND Marketing 是做什么的？", a: "它是 ROARLAND 自研的 AI 搜索数据分析工具，连接你的 Google Search Console，把点击、展现、排名等原始数据整理成可读的趋势图表，并由 AI 给出流量异动预警与优化建议。" },
+        { id: "permissions", q: "需要哪些权限？会不会有安全风险？", a: "仅申请 Search Console 的只读权限和基础账号信息，不具备任何写入、删除或站点配置能力。授权 Token 使用 AES-256-GCM 加密后存储，永不经过浏览器。" },
+        { id: "pricing", q: "是否收费？", a: "这个面板部署在你自己的基础设施上，没有额外的订阅费用。" },
+        { id: "multisite", q: "可以同时管理多个网站吗？", a: "可以。一个 Google 账号下的所有 Search Console 资源都可以在同一个看板中集中查看和切换。" },
+        { id: "freshness", q: "数据多久更新一次？", a: "Search Console 数据本身通常有 1-3 天延迟，看板会在数据可用后自动同步，无需手动刷新。" },
+        { id: "install", q: "需要在网站里安装代码或插件吗？", a: "不需要。工具直接读取 Google Search Console 已有的数据，无需在你的网站中添加任何代码或埋点。" },
+        { id: "revoke", q: "我可以随时断开授权吗？", a: "可以，你可以随时在 Google 账号权限管理页面撤销授权，撤销后 ROARLAND Marketing 将无法再读取任何数据。" },
+      ],
+    },
+    cta: {
+      heading: { line1: "准备好用 AI", line2: "分析和处理你的营销数据了吗？" },
+      desc: "使用 Google 账号登录，只读授权，两分钟内生成属于你的 AI 分析看板。",
+      ctaPrimary: "立即开始使用 →",
+      ctaSecondary: "联系我们",
+    },
+    footer: {
+      tagline: "AI for the home use, data driven products.\n让每一个家庭都能享受智能科技带来的美好生活。",
+      linksHeading: "本页导航",
+      contactHeading: "联系方式",
+      email: "hi@roarland.net",
+      phone: "+86 18918119160",
+      copyright: "© 2026 ROARLAND 若尔岚德 · All Rights Reserved",
+      privacyLink: "隐私政策",
+      termsLink: "服务条款",
+    },
+  },
+
+  legal: {
+    updatedLabel: "最后更新",
+    backLink: "返回首页",
+    privacy: {
+      title: "隐私政策",
+      updated: "2026 年 7 月 31 日",
+      intro:
+        "本政策说明 ROARLAND（若尔岚德）在你访问本网站、使用我们的智能硬件产品，以及使用 ROARLAND Marketing 搜索数据分析工具时，如何收集、使用、存储和保护你的信息。请在使用我们的服务前完整阅读本政策。",
+      sections: [
+        {
+          id: "scope",
+          heading: "适用范围",
+          paragraphs: [
+            "本政策适用于 ROARLAND 运营的本网站、ROARLAND Marketing 工具，以及与之关联的服务。",
+            "本政策不适用于通过本网站链接跳转的第三方网站或服务。你在第三方服务上的信息处理，适用该第三方自己的隐私政策。",
+          ],
+        },
+        {
+          id: "collect",
+          heading: "我们收集的信息",
+          paragraphs: ["我们仅收集提供服务所必需的信息，具体包括以下几类："],
+          bullets: [
+            "你主动提供的信息：当你通过邮件或电话与我们联系时，你所提供的姓名、邮箱、电话及沟通内容。",
+            "Google 账号授权信息：当你授权使用 ROARLAND Marketing 时，我们获取你的账号邮箱地址（用于识别账号），以及 Google Search Console 的只读数据（点击量、展现量、排名、查询词、页面表现等）。",
+            "自动收集的技术信息：访问日志中的 IP 地址、浏览器类型、设备类型、访问时间与访问页面，用于保障服务安全与稳定运行。",
+          ],
+        },
+        {
+          id: "google",
+          heading: "Google 用户数据的使用",
+          paragraphs: [
+            "ROARLAND Marketing 通过 Google 官方 API 接入 Search Console。我们申请的权限仅限只读：webmasters.readonly（读取 Search Console 数据）与 userinfo.email（识别账号）。我们不具备写入、删除或更改你站点配置的任何能力。",
+            "ROARLAND 对 Google 用户数据的使用与传输，遵守 Google API Services User Data Policy，包括其中的 Limited Use 要求。具体而言：我们仅将这些数据用于向你本人展示和分析你自己的搜索表现；不会将其用于广告投放；不会出售给任何第三方；不会用于训练通用人工智能模型。",
+            "你可以随时在 Google 账号的第三方应用权限页面撤销对 ROARLAND Marketing 的授权。撤销后我们将立即失去读取任何数据的能力。",
+          ],
+        },
+        {
+          id: "use",
+          heading: "我们如何使用信息",
+          bullets: [
+            "向你提供、维护和改进我们的产品与服务；",
+            "生成你所请求的搜索数据分析看板、趋势图表与优化建议；",
+            "回应你的咨询、反馈与技术支持请求；",
+            "监测并防范安全风险、滥用行为与技术故障；",
+            "在法律法规要求的范围内履行合规义务。",
+          ],
+        },
+        {
+          id: "sharing",
+          heading: "信息共享",
+          paragraphs: [
+            "我们不出售、不出租你的个人信息。仅在以下有限情形下，我们可能共享必要的信息：",
+          ],
+          bullets: [
+            "在你明确同意或主动要求的情况下；",
+            "与为我们提供基础设施服务的供应商共享运行所必需的信息，这些供应商受合同约束，仅能按我们的指示处理数据；",
+            "为遵守法律法规、监管要求或有权机关的合法要求。",
+          ],
+        },
+        {
+          id: "security",
+          heading: "数据存储与安全",
+          paragraphs: [
+            "所有 OAuth 授权令牌在写入存储前均使用 AES-256-GCM 加密，密钥与数据分离保管，令牌不会传递到浏览器端。",
+            "数据传输全程使用 TLS 加密。我们对内部访问实施最小权限原则。",
+            "需要说明的是，没有任何一种传输或存储方式能够保证百分之百安全。我们会采取行业通行的合理措施保护你的信息，但无法作出绝对安全的承诺。",
+          ],
+        },
+        {
+          id: "retention",
+          heading: "数据保留",
+          paragraphs: [
+            "我们仅在实现本政策所述目的所必需的期限内保留你的信息。当你撤销授权或要求删除账号时，我们将删除相应的授权令牌与缓存数据，法律法规另有留存要求的除外。",
+          ],
+        },
+        {
+          id: "rights",
+          heading: "你的权利",
+          paragraphs: ["在适用法律允许的范围内，你有权："],
+          bullets: [
+            "查询我们所持有的与你相关的信息；",
+            "要求更正不准确的信息；",
+            "要求删除你的信息；",
+            "随时撤回你此前给予的授权同意；",
+            "就我们的信息处理活动提出投诉。",
+          ],
+        },
+        {
+          id: "cookies",
+          heading: "Cookie 与同类技术",
+          paragraphs: [
+            "本网站为静态站点，不使用用于广告投放或跨站跟踪的 Cookie。ROARLAND Marketing 使用维持登录状态所必需的会话 Cookie。",
+          ],
+        },
+        {
+          id: "children",
+          heading: "未成年人",
+          paragraphs: [
+            "我们的服务不面向 14 周岁以下的儿童，也不会有意收集其个人信息。若你认为我们可能收集了此类信息，请立即联系我们，我们将予以删除。",
+          ],
+        },
+        {
+          id: "changes",
+          heading: "政策变更",
+          paragraphs: [
+            "我们可能不时更新本政策。更新后的版本将在本页面发布并标注更新日期。若涉及重大变更，我们会通过适当方式另行告知。",
+          ],
+        },
+        {
+          id: "contact",
+          heading: "联系我们",
+          paragraphs: [
+            "如你对本政策或我们的信息处理方式有任何疑问，请通过以下方式联系我们：",
+          ],
+          bullets: [
+            "邮箱：hi@roarland.net",
+            "电话：+86 18918119160",
+          ],
+        },
+      ],
+    },
+    terms: {
+      title: "服务条款",
+      updated: "2026 年 7 月 31 日",
+      intro:
+        "本条款是你与 ROARLAND（若尔岚德）之间就使用本网站及 ROARLAND Marketing 工具所达成的协议。访问或使用我们的服务，即表示你已阅读、理解并同意接受本条款的约束。如你不同意本条款，请勿使用相关服务。",
+      sections: [
+        {
+          id: "acceptance",
+          heading: "条款的接受",
+          paragraphs: [
+            "你在访问本网站或使用 ROARLAND Marketing 时即视为接受本条款。若你代表某一组织使用本服务，你声明你已获得该组织的充分授权。",
+          ],
+        },
+        {
+          id: "services",
+          heading: "服务说明",
+          paragraphs: [
+            "本网站提供 ROARLAND 品牌、产品与技术的相关信息。",
+            "ROARLAND Marketing 是一项搜索数据分析工具，在你授权后读取你的 Google Search Console 数据，并以图表和 AI 生成的建议形式呈现分析结果。",
+          ],
+        },
+        {
+          id: "account",
+          heading: "账号与授权",
+          bullets: [
+            "你需使用自有的、且已获得相应 Search Console 权限的 Google 账号完成授权；",
+            "你应对该账号下发生的活动负责，并妥善保管账号凭据；",
+            "你不得授权访问你无权访问的站点数据；",
+            "你可随时撤销授权，撤销即终止我们读取数据的能力。",
+          ],
+        },
+        {
+          id: "acceptable-use",
+          heading: "使用规范",
+          paragraphs: ["使用我们的服务时，你不得："],
+          bullets: [
+            "违反任何适用的法律法规；",
+            "试图未经授权访问我们的系统、数据或其他用户的信息；",
+            "以自动化手段过度请求、干扰或破坏服务的正常运行；",
+            "对服务进行反向工程、反编译或试图提取源代码；",
+            "将服务用于转售、或在未获我们书面许可的情况下向第三方提供；",
+            "上传或传播恶意代码，或从事任何危害服务安全的行为。",
+          ],
+        },
+        {
+          id: "ip",
+          heading: "知识产权",
+          paragraphs: [
+            "本网站及服务中的全部内容，包括但不限于文字、图形、界面设计、商标、标识与软件，均归 ROARLAND 或其许可方所有，受相关法律保护。",
+            "未经我们事先书面许可，你不得复制、修改、分发或以商业目的使用上述内容。",
+            "你通过服务访问的自有搜索数据归你所有，本条款不改变该等数据的归属。",
+          ],
+        },
+        {
+          id: "third-party",
+          heading: "第三方服务",
+          paragraphs: [
+            "ROARLAND Marketing 依赖 Google Search Console API 提供数据。该等数据的准确性、完整性与可用性取决于 Google，我们无法对其作出保证。Google 服务的变更、中断或政策调整可能影响本服务的功能。",
+            "你对 Google 服务的使用同时受 Google 自身条款的约束。",
+          ],
+        },
+        {
+          id: "availability",
+          heading: "服务可用性与变更",
+          paragraphs: [
+            "我们会尽合理努力保持服务稳定运行，但不承诺服务不中断或无错误。我们可能因维护、升级或其他原因暂停服务。",
+            "我们保留随时修改、暂停或终止服务全部或部分功能的权利。对于可能造成重大影响的变更，我们将尽合理努力提前告知。",
+          ],
+        },
+        {
+          id: "disclaimer",
+          heading: "免责声明",
+          paragraphs: [
+            "在适用法律允许的最大范围内，服务按“现状”和“现有”基础提供，我们不作任何明示或默示的保证，包括但不限于适销性、特定用途适用性及不侵权的保证。",
+            "AI 生成的分析结论与优化建议仅供参考，不构成专业意见。你应自行判断并对基于此作出的决策负责。",
+          ],
+        },
+        {
+          id: "liability",
+          heading: "责任限制",
+          paragraphs: [
+            "在适用法律允许的最大范围内，ROARLAND 不对任何间接的、附带的、特殊的、惩罚性的或后果性的损失承担责任，包括但不限于利润损失、数据丢失、业务中断或商誉损害。",
+            "本条款不排除或限制依法不可排除或限制的责任。",
+          ],
+        },
+        {
+          id: "termination",
+          heading: "服务终止",
+          paragraphs: [
+            "你可随时停止使用服务并撤销授权。",
+            "若你违反本条款，我们可在通知或不通知的情况下暂停或终止你对服务的访问。",
+          ],
+        },
+        {
+          id: "law",
+          heading: "适用法律与争议解决",
+          paragraphs: [
+            "本条款的订立、效力、解释及争议解决，均适用中华人民共和国法律（不含港澳台地区法律）。",
+            "因本条款产生的争议，双方应首先友好协商解决；协商不成的，任何一方可向 ROARLAND 住所地有管辖权的人民法院提起诉讼。",
+          ],
+        },
+        {
+          id: "changes",
+          heading: "条款变更",
+          paragraphs: [
+            "我们可能不时修订本条款。修订后的条款将在本页面公布并标注更新日期，自公布之日起生效。你在变更生效后继续使用服务，即视为接受修订后的条款。",
+          ],
+        },
+        {
+          id: "contact",
+          heading: "联系我们",
+          paragraphs: ["如你对本条款有任何疑问，请通过以下方式联系我们："],
+          bullets: [
+            "邮箱：hi@roarland.net",
+            "电话：+86 18918119160",
+          ],
+        },
+      ],
+    },
   },
 };
 
